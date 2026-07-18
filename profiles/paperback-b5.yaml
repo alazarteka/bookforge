@@ -1,0 +1,9 @@
+schema: 1
+id: paperback-b5
+name: Paperback — JIS B5 interior
+page: 182mm,257mm
+margins: 19mm 17mm 21mm 23mm
+bleed: 0mm
+binding: perfect
+color: grayscale
+cover: interior

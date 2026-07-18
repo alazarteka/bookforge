@@ -1,0 +1,12 @@
+schema: 1
+id: classic
+name: Classic
+version: 1.0.0
+styles:
+  tokens: tokens.css
+  body: body.css
+  web: web.css
+  epub: epub.css
+  print: print.css
+  cover: cover.css
+assets: []

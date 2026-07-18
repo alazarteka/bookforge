@@ -1,0 +1,9 @@
+schema: 1
+id: paperback-7x10
+name: Paperback — 7 × 10 inch interior
+page: 7in,10in
+margins: 20mm 18mm 22mm 25mm
+bleed: 0mm
+binding: perfect
+color: grayscale
+cover: interior

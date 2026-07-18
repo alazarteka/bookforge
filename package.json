@@ -1,0 +1,49 @@
+{
+  "name": "bookforge",
+  "version": "0.1.0",
+  "description": "Local-first Markdown publishing for web, EPUB, and PDF",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "bookforge": "./lib/cli.js"
+  },
+  "files": [
+    "lib",
+    "themes",
+    "profiles",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "node scripts/clean.mjs",
+    "fixtures:prepare": "node scripts/prepare-fixtures.mjs",
+    "profiles:verify": "node scripts/verify-profiles.mjs",
+    "test": "pnpm run fixtures:prepare && pnpm run build && node --test lib/*.test.js",
+    "check": "pnpm run build && pnpm run test && pnpm run security:audit",
+    "security:audit": "pnpm audit --audit-level=low",
+    "security:verify": "pnpm install --frozen-lockfile --ignore-scripts && pnpm audit --audit-level=low"
+  },
+  "packageManager": "pnpm@10.26.1",
+  "engines": {
+    "node": "=24.18.0"
+  },
+  "dependencies": {
+    "sharp": "0.35.3",
+    "yaml": "2.9.0",
+    "yazl": "3.3.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.3",
+    "@types/yazl": "3.3.1",
+    "@vivliostyle/cli": "11.1.0",
+    "typescript": "6.0.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "trim": "0.0.3",
+      "prismjs": "1.30.0",
+      "press-ready>uuid": "11.1.1"
+    }
+  }
+}

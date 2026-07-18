@@ -1,0 +1,8 @@
+minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  - "@vivliostyle/cli@11.1.0"
+trustPolicy: no-downgrade
+blockExoticSubdeps: true
+
+packages:
+  - .

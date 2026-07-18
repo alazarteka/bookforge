@@ -1,0 +1,26 @@
+schema: 1
+id: synthetic-book
+title: The Lantern Atlas
+subtitle: A small test publication
+language: en
+authors:
+  - name: Bookforge
+theme: classic
+cover:
+  path: assets/marker.png
+  alt: A small square marker
+chapters:
+  - id: threshold
+    path: chapters/01-threshold.md
+    role: frontmatter
+  - id: night-train
+    path: chapters/02-night-train.md
+    role: bodymatter
+  - id: notes
+    path: chapters/03-notes.md
+    role: backmatter
+outputs:
+  web: {}
+  epub: {}
+  pdf:
+    profile: screen-a5

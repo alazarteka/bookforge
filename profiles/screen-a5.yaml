@@ -1,0 +1,9 @@
+schema: 1
+id: screen-a5
+name: Screen and home print — A5
+page: A5
+margins: 20mm 18mm 22mm
+bleed: 0mm
+binding: screen
+color: color
+cover: interior

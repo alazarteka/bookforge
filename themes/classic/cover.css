@@ -1,0 +1,6 @@
+.print-cover { page: cover; break-after: page; height: calc(100vh - 2 * 20mm); display: grid; place-items: center; text-align: center; }
+.print-cover-inner { width: 78%; padding: 18mm 10mm; border: 1.1pt solid var(--ink); outline: .4pt solid var(--ink); outline-offset: -2.5mm; }
+.print-cover-label { font: 600 8pt/1.2 var(--sans); letter-spacing: .18em; text-transform: uppercase; }
+.print-cover h1 { margin: .3em 0; font-size: 38pt; font-weight: 400; line-height: .95; }
+.print-cover .subtitle { color: var(--ink-soft); font-style: italic; }
+.print-cover .authors { margin-top: 10mm; }

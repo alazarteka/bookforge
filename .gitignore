@@ -1,0 +1,9 @@
+node_modules/
+lib/
+tmp/
+output/
+dist/
+.bookforge-preview/
+.bookforge-preview-*/
+*.log
+.DS_Store

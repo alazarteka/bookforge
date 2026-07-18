@@ -1,0 +1,19 @@
+@page { size: var(--book-page, A5); margin: var(--book-margin, 20mm 18mm 22mm); bleed: var(--book-bleed, 0mm); @bottom-center { content: counter(page); color: #6f675b; font: 8pt var(--sans); } }
+@page chapter { @top-center { content: string(chapter-title); color: #6f675b; font: 7pt var(--sans); letter-spacing: .1em; text-transform: uppercase; } }
+@page :first { @bottom-center { content: none; } }
+@page chapter:first { @top-center { content: none; } @bottom-center { content: none; } }
+html { font-size: 10.5pt; line-height: 1.62; background: white; }
+body { background: white; }
+html[data-color="grayscale"] { filter: grayscale(1); }
+a { color: inherit; }
+.print-toc { break-after: page; }
+.print-toc li { display: flex; justify-content: space-between; border-bottom: .25pt solid var(--rule); padding: 2mm 0; }
+.print-toc a { display: flex; flex: 1; text-decoration: none; }
+.print-toc a::after { content: target-counter(attr(href), page); margin-left: auto; padding-left: 4mm; }
+.chapter { page: chapter; break-before: page; max-width: none; padding: 24mm 0 0; }
+.chapter-header { margin: 0 0 15mm; }
+.chapter-header h1 { font-size: 27pt; string-set: chapter-title content(text); }
+.prose h2, .prose h3, .prose h4 { break-after: avoid; }
+.prose blockquote, .prose figure, .prose table, .prose pre { break-inside: avoid; }
+.prose p { orphans: 2; widows: 2; }
+.footnotes { break-inside: avoid; }

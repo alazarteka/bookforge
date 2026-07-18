@@ -1,0 +1,9 @@
+schema: 1
+id: coil-letter
+name: Coil-bound study copy — US Letter
+page: letter
+margins: 20mm 18mm 22mm 25mm
+bleed: 0mm
+binding: coil
+color: grayscale
+cover: interior

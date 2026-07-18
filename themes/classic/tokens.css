@@ -1,0 +1,11 @@
+:root {
+  --paper: #f3ecdc;
+  --paper-deep: #e6d9bf;
+  --ink: #28251f;
+  --ink-soft: #6f675b;
+  --accent: #9b542f;
+  --rule: color-mix(in srgb, var(--ink) 18%, transparent);
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --measure: 42rem;
+}
