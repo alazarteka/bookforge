@@ -59,8 +59,10 @@ pnpm run security:verify
 ```
 
 Set `SOURCE_DATE_EPOCH` for deterministic metadata and byte-identical EPUB
-archives. Generated publications never require Bookforge, Node, or a web
-framework at reading time.
+archives across repeated builds on the same toolchain (pinned Node/Pandoc and
+the same installed `sharp`/libvips build) and platform, since image assets
+are re-encoded through `sharp` at build time. Generated publications never
+require Bookforge, Node, or a web framework at reading time.
 
 ## Themes and print profiles
 

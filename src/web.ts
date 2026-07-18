@@ -30,7 +30,7 @@ function bar(publication: Publication): string {
 }
 
 function documentShell(title: string, language: string, body: string, cssHref: string, scriptHref?: string): string {
-  return `<!doctype html><html lang="${escapeHtml(language)}" data-theme="sepia"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>${escapeHtml(title)}</title><link rel="stylesheet" href="${cssHref}"></head><body>${body}${scriptHref ? `<script src="${scriptHref}"></script>` : ""}</body></html>`;
+  return `<!doctype html><html lang="${escapeHtml(language)}" data-theme="sepia"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>${escapeHtml(title)}</title><script>(()=>{const root=document.documentElement;let saved={};try{saved=JSON.parse(localStorage.getItem("bookforge-reader")||"{}")}catch{}root.dataset.theme=saved.theme||"sepia";if(saved.size)root.style.fontSize=saved.size+"px";if(saved.width)root.style.setProperty("--measure",saved.width+"rem")})();</script><link rel="stylesheet" href="${cssHref}"></head><body>${body}${scriptHref ? `<script src="${scriptHref}"></script>` : ""}</body></html>`;
 }
 
 export async function renderWeb(publication: Publication, theme: PublicationTheme, directory: string): Promise<void> {

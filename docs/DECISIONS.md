@@ -88,3 +88,14 @@ Themes control cross-format visual language through validated CSS and declared
 assets. Print profiles independently control page geometry, margins, binding,
 color mode, bleed, and cover mode. Bookforge owns semantic output structures;
 version-one themes do not inject arbitrary templates.
+
+## D-012: Reproducibility is scoped to a fixed toolchain
+
+Status: accepted.
+
+EPUB archive assembly (`zipEpub`) is fully deterministic, but raster assets
+are re-encoded through `sharp` at build time. `sharp` wraps libvips, whose
+output bytes can vary across versions and platforms. Byte-identical EPUB
+output is therefore guaranteed for repeated builds on the same toolchain and
+platform, not universally across machines. The build manifest does not yet
+record the `sharp`/libvips version.

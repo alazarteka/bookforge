@@ -38,15 +38,10 @@ export function renderInlines(inlines: Inline[], context: HtmlContext): string {
 }
 
 export function renderBlocks(blocks: Block[], context: HtmlContext): string {
-  const footnotes: Array<Extract<Inline, { type: "footnote" }>> = [];
-  const scan = (inlines: Inline[]) => inlines.forEach((inline) => {
-    if (inline.type === "footnote") footnotes.push(inline);
-    if ("children" in inline && Array.isArray(inline.children)) scan(inline.children);
-  });
-  const rendered = blocks.map((block) => {
+  return blocks.map((block) => {
     switch (block.type) {
-      case "paragraph": scan(block.children); return `<p>${renderInlines(block.children, context)}</p>`;
-      case "heading": scan(block.children); return `<h${block.level} id="${escapeHtml(block.id)}">${renderInlines(block.children, context)}</h${block.level}>`;
+      case "paragraph": return `<p>${renderInlines(block.children, context)}</p>`;
+      case "heading": return `<h${block.level} id="${escapeHtml(block.id)}">${renderInlines(block.children, context)}</h${block.level}>`;
       case "blockquote": return `<blockquote>${renderBlocks(block.blocks, context)}</blockquote>`;
       case "sceneBreak": return `<hr class="scene-break" aria-label="Scene break" />`;
       case "list": {
@@ -55,17 +50,36 @@ export function renderBlocks(blocks: Block[], context: HtmlContext): string {
         return `<${tag}${start}>${block.items.map((item) => `<li>${renderBlocks(item, context)}</li>`).join("")}</${tag}>`;
       }
       case "codeBlock": return `<pre${block.language ? ` data-language="${escapeHtml(block.language)}"` : ""}><code>${escapeHtml(block.value)}</code></pre>`;
-      case "figure": scan(block.caption); return `<figure>${renderInlines([block.image], context)}<figcaption>${renderInlines(block.caption, context)}</figcaption></figure>`;
+      case "figure": return `<figure>${renderInlines([block.image], context)}<figcaption>${renderInlines(block.caption, context)}</figcaption></figure>`;
       case "table": return `<table>${block.headers.length ? `<thead><tr>${block.headers.map((cell) => `<th>${renderInlines(cell, context)}</th>`).join("")}</tr></thead>` : ""}<tbody>${block.rows.map((row) => `<tr>${row.map((cell) => `<td>${renderInlines(cell, context)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
     }
   }).join("\n");
-  if (!footnotes.length) return rendered;
+}
+
+const collectFootnotes = (blocks: Block[]): Array<Extract<Inline, { type: "footnote" }>> => {
+  const notes: Array<Extract<Inline, { type: "footnote" }>> = [];
+  const scanInlines = (inlines: Inline[]) => inlines.forEach((inline) => {
+    if (inline.type === "footnote") { notes.push(inline); scanBlocks(inline.blocks); }
+    else if ("children" in inline && Array.isArray(inline.children)) scanInlines(inline.children);
+  });
+  const scanBlocks = (list: Block[]) => list.forEach((block) => {
+    if (block.type === "paragraph" || block.type === "heading") scanInlines(block.children);
+    else if (block.type === "blockquote") scanBlocks(block.blocks);
+    else if (block.type === "list") block.items.forEach(scanBlocks);
+    else if (block.type === "figure") { scanInlines([block.image]); scanInlines(block.caption); }
+    else if (block.type === "table") { block.headers.forEach(scanInlines); block.rows.flat().forEach(scanInlines); }
+  });
+  scanBlocks(blocks);
+  return notes;
+};
+
+const renderFootnotes = (notes: Array<Extract<Inline, { type: "footnote" }>>, context: HtmlContext): string => {
+  if (!notes.length) return "";
   const sectionSemantic = context.flavor === "epub" ? ` epub:type="footnotes"` : ` role="doc-endnotes"`;
   const noteSemantic = context.flavor === "epub" ? ` epub:type="footnote"` : ` role="doc-endnote"`;
-  const notes = `<section class="footnotes"${sectionSemantic}><ol>${footnotes.map((note) => `<li id="${note.id}"${noteSemantic}>${renderBlocks(note.blocks, context)}<a href="#${note.id}-ref" aria-label="Back to reference">↩</a></li>`).join("")}</ol></section>`;
-  return `${rendered}\n${notes}`;
+  return `\n<section class="footnotes"${sectionSemantic}><ol>${notes.map((note) => `<li id="${note.id}"${noteSemantic}>${renderBlocks(note.blocks, context)}<a href="#${note.id}-ref" aria-label="Back to reference">↩</a></li>`).join("")}</ol></section>`;
 }
 
 export function sectionArticle(section: Section, publication: Publication, context: HtmlContext): string {
-  return `<article class="chapter ${section.role}" id="${escapeHtml(section.id)}"><header class="chapter-header"><p class="chapter-kicker">${section.role === "bodymatter" ? "Chapter" : escapeHtml(section.role)}</p><h1>${renderInlines(section.title, context)}</h1></header><div class="prose">${renderBlocks(section.blocks, context)}</div></article>`;
+  return `<article class="chapter ${section.role}" id="${escapeHtml(section.id)}"><header class="chapter-header"><p class="chapter-kicker">${section.role === "bodymatter" ? "Chapter" : escapeHtml(section.role)}</p><h1>${renderInlines(section.title, context)}</h1></header><div class="prose">${renderBlocks(section.blocks, context)}${renderFootnotes(collectFootnotes(section.blocks), context)}</div></article>`;
 }

@@ -363,6 +363,12 @@ Every build must emit `build-manifest.json` containing:
 - Vivliostyle version when PDF is built
 - Build timestamp derived from `SOURCE_DATE_EPOCH` when present
 
+Byte-identical EPUB archives are guaranteed only across repeated builds on the
+same toolchain (pinned Node/Pandoc and the same installed `sharp`/libvips
+build) and platform: raster assets are re-encoded through `sharp` at build
+time, and `sharp`/libvips output can differ across versions or
+architectures. The manifest does not yet record the `sharp`/libvips version.
+
 Build checks:
 
 - Manifest schema validation
@@ -430,8 +436,9 @@ Tests include:
 - Reading preferences and location persist when JavaScript is enabled.
 - The PDF supports all four page presets and contains working chapter breaks,
   running heads, and page numbers.
-- Repeating an EPUB build with identical inputs and `SOURCE_DATE_EPOCH` yields
-  identical bytes.
+- Repeating an EPUB build with identical inputs, `SOURCE_DATE_EPOCH`, and the
+  same toolchain (pinned Node/Pandoc and the same installed `sharp`/libvips
+  build) on the same platform yields identical bytes.
 - `bookforge doctor` accurately describes this machine's tool state.
 - No build reads outside the project or accesses the network.
 

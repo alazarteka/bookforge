@@ -38,6 +38,8 @@ export async function createPublication(projectRoot: string): Promise<{ publicat
   };
   resolveChapterLinks(publication, config.chapters);
   await collectAssets(publication, projectRoot, config.cover?.path);
+  hashes.push(theme.hash);
+  for (const asset of [...publication.assets].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) hashes.push(asset.hash);
   return { publication, config, theme, sourceHash: sha256(hashes.join("\n\0\n")) };
 }
 
