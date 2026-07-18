@@ -4,6 +4,20 @@ Bookforge themes control presentation while Bookforge retains ownership of the
 semantic HTML/XHTML structures. A theme can be built into Bookforge or placed
 inside an individual book project.
 
+## Built-in themes
+
+Set `theme: <id>` in `book.yaml`. Each bundles its own OFL fonts and renders
+across web, EPUB, and print.
+
+| id | Character |
+| --- | --- |
+| `classic` | Warm literary letterpress — sepia paper, Source Serif 4, copper accent, drop cap (default) |
+| `meridian` | Engineer's manual — cool gridded sans-first (IBM Plex), signal-blue, crosshair sigil, first-class tables |
+| `caesura` | A quiet room for poetry — bone paper, EB Garamond + Cormorant, hanging-indent verse, whitespace scene break |
+| `riso-club` | Two-ink risograph zine — blue body text + fluorescent coral, Archivo Expanded, misregistration shadow |
+| `lyceum` | Scholarly apparatus — STIX Two + Alegreya Sans, oxblood, numbered headings, small-caps versal opener |
+| `acorn` | Early-reader / read-aloud — Andika + Baloo 2, round, leaf-green + marigold, big touch targets, lamplight night |
+
 Resolution order for `theme: my-theme` is:
 
 1. `<book>/theme/theme.yaml`, when that manifest declares `my-theme`
