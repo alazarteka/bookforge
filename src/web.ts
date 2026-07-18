@@ -13,12 +13,18 @@ const readerJs = `
   root.dataset.theme = saved.theme || "sepia";
   if (saved.size) root.style.fontSize = saved.size + "px";
   if (saved.width) root.style.setProperty("--measure", saved.width + "rem");
-  const persist = () => localStorage.setItem("bookforge-reader", JSON.stringify({ theme: root.dataset.theme, size: parseFloat(getComputedStyle(root).fontSize), width: parseFloat(getComputedStyle(root).getPropertyValue("--measure")) }));
-  document.querySelector("[data-theme]")?.addEventListener("change", e => { root.dataset.theme = e.target.value; persist(); });
-  const themeControl = document.querySelector("[data-theme]"); if (themeControl) themeControl.value = root.dataset.theme;
+  const measure = () => parseFloat(getComputedStyle(root).getPropertyValue("--measure"));
+  const persist = () => localStorage.setItem("bookforge-reader", JSON.stringify({ theme: root.dataset.theme, size: parseFloat(getComputedStyle(root).fontSize), width: measure() }));
+  const swatches = [...document.querySelectorAll("[data-theme-set]")];
+  const syncTheme = () => swatches.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.themeSet === root.dataset.theme)));
+  swatches.forEach(b => b.addEventListener("click", () => { root.dataset.theme = b.dataset.themeSet; syncTheme(); persist(); }));
+  syncTheme();
+  const widthButton = document.querySelector("[data-width]");
+  const syncWidth = () => widthButton?.setAttribute("aria-pressed", String(measure() >= 48));
+  widthButton?.addEventListener("click", () => { root.style.setProperty("--measure", (measure() >= 48 ? 42 : 50) + "rem"); syncWidth(); persist(); });
+  syncWidth();
   document.querySelector("[data-size-down]")?.addEventListener("click", () => { root.style.fontSize = Math.max(14, parseFloat(getComputedStyle(root).fontSize) - 1) + "px"; persist(); });
   document.querySelector("[data-size-up]")?.addEventListener("click", () => { root.style.fontSize = Math.min(24, parseFloat(getComputedStyle(root).fontSize) + 1) + "px"; persist(); });
-  document.querySelector("[data-width]")?.addEventListener("click", () => { const current = parseFloat(getComputedStyle(root).getPropertyValue("--measure")); root.style.setProperty("--measure", (current >= 48 ? 36 : current + 6) + "rem"); persist(); });
   const progress = document.querySelector(".reading-progress");
   const update = () => { const max = document.documentElement.scrollHeight - innerHeight; const value = max > 0 ? scrollY / max * 100 : 0; progress?.style.setProperty("--progress", value + "%"); localStorage.setItem("bookforge-position:" + location.pathname, String(scrollY)); };
   addEventListener("scroll", update, { passive: true }); update();
@@ -26,7 +32,10 @@ const readerJs = `
 })();`;
 
 function bar(publication: Publication): string {
-  return `<div class="reading-progress" aria-hidden="true"></div><nav class="reader-bar" aria-label="Reader controls"><a class="brand" href="../index.html">Bookforge <span>· ${escapeHtml(publication.metadata.title)}</span></a><button data-width aria-label="Change reading width">↔</button><button data-size-down aria-label="Decrease text size">A−</button><button data-size-up aria-label="Increase text size">A+</button><label><span class="visually-hidden">Color theme</span><select data-theme><option value="sepia">Sepia</option><option value="light">Light</option><option value="night">Night</option></select></label></nav>`;
+  const swatch = (id: string, label: string) =>
+    `<button class="swatch" type="button" data-theme-set="${id}" aria-pressed="false" aria-label="${label} theme"><span class="sw sw-${id}" aria-hidden="true"></span></button>`;
+  const widthIcon = `<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M3 5v14M21 5v14M8 12h8M8 12l2.3-2.5M8 12l2.3 2.5M16 12l-2.3-2.5M16 12l-2.3 2.5"/></svg>`;
+  return `<div class="reading-progress" aria-hidden="true"></div><nav class="reader-bar" aria-label="Reader controls"><a class="brand" href="../index.html">Bookforge <span>· ${escapeHtml(publication.metadata.title)}</span></a><div class="tools"><div class="seg" role="group" aria-label="Text size"><button class="sizer sm" type="button" data-size-down aria-label="Decrease text size">A</button><button class="sizer lg" type="button" data-size-up aria-label="Increase text size">A</button></div><button class="width" type="button" data-width aria-pressed="false" aria-label="Toggle wide reading width">${widthIcon}</button><div class="seg themes" role="group" aria-label="Color theme">${swatch("sepia", "Sepia")}${swatch("light", "Light")}${swatch("night", "Night")}</div></div></nav>`;
 }
 
 function documentShell(title: string, language: string, body: string, cssHref: string, scriptHref?: string): string {
