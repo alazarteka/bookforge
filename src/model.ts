@@ -12,7 +12,7 @@ export interface BookConfig {
   cover?: { path: string; alt: string };
   chapters: Array<{ id: string; path: string; role: SectionRole; title?: string }>;
   outputs: {
-    web?: Record<string, never>;
+    web?: { reading?: "paged" | "continuous" };
     epub?: Record<string, never>;
     pdf?: {
       profile?: string;

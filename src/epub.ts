@@ -4,7 +4,7 @@ import path from "node:path";
 import { createWriteStream } from "node:fs";
 import { ZipFile } from "yazl";
 import type { Publication, PublicationTheme } from "./model.js";
-import { sectionArticle } from "./html.js";
+import { sectionArticle, sectionKickers } from "./html.js";
 import { themeCss, writeThemeAssets } from "./theme-loader.js";
 import { escapeXml, inlineText, sourceEpochDate } from "./util.js";
 import { writeAssets } from "./assets.js";
@@ -29,9 +29,10 @@ export async function renderEpub(publication: Publication, theme: PublicationThe
     await writeAssets(publication.assets, path.join(epubDir, "assets"));
     await writeThemeAssets(theme, path.join(epubDir, "theme-assets"));
     const assets = new Map(publication.assets.map((asset) => [asset.id, asset]));
+    const kickers = sectionKickers(publication.spine);
     for (const section of publication.spine) {
       const context = { flavor: "epub" as const, assets, chapterFile: (id: string) => `${id}.xhtml`, assetPrefix: "assets/" };
-      await writeFile(path.join(epubDir, `${section.id}.xhtml`), xhtml(inlineText(section.title), publication.metadata.language, sectionArticle(section, publication, context)));
+      await writeFile(path.join(epubDir, `${section.id}.xhtml`), xhtml(inlineText(section.title), publication.metadata.language, sectionArticle(section, publication, context, kickers.get(section.id) ?? "")));
     }
     const navItems = publication.spine.map((section) => `<li><a href="${section.id}.xhtml">${escapeXml(inlineText(section.title))}</a></li>`).join("");
     const nav = xhtml("Contents", publication.metadata.language, `<nav epub:type="toc" id="toc"><h1>Contents</h1><ol>${navItems}</ol></nav><nav epub:type="landmarks" hidden="hidden"><ol><li><a epub:type="bodymatter" href="${publication.spine.find((s) => s.role === "bodymatter")?.id ?? publication.spine[0]!.id}.xhtml">Begin reading</a></li></ol></nav>`);

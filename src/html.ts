@@ -80,6 +80,31 @@ const renderFootnotes = (notes: Array<Extract<Inline, { type: "footnote" }>>, co
   return `\n<section class="footnotes"${sectionSemantic}><ol>${notes.map((note) => `<li id="${note.id}"${noteSemantic}>${renderBlocks(note.blocks, context)}<a href="#${note.id}-ref" aria-label="Back to reference">↩</a></li>`).join("")}</ol></section>`;
 }
 
-export function sectionArticle(section: Section, publication: Publication, context: HtmlContext): string {
-  return `<article class="chapter ${section.role}" id="${escapeHtml(section.id)}"><header class="chapter-header"><p class="chapter-kicker">${section.role === "bodymatter" ? "Chapter" : escapeHtml(section.role)}</p><h1>${renderInlines(section.title, context)}</h1></header><div class="prose">${renderBlocks(section.blocks, context)}${renderFootnotes(collectFootnotes(section.blocks), context)}</div></article>`;
+// Chapter openers show a numeral for body chapters and a part label for parts;
+// front/back matter carry no kicker (their title stands alone). This replaces the
+// old hard-coded "Chapter" word — redundant above titles like "Chapter I" — and the
+// raw role string ("frontmatter") that used to leak onto the page.
+export function sectionKickers(spine: Section[]): Map<string, string> {
+  const kickers = new Map<string, string>();
+  let chapter = 0;
+  let part = 0;
+  for (const section of spine) {
+    if (section.role === "bodymatter") kickers.set(section.id, String(++chapter));
+    else if (section.role === "part") kickers.set(section.id, `Part ${++part}`);
+    else kickers.set(section.id, "");
+  }
+  return kickers;
+}
+
+// Human-readable role for the table of contents; body chapters get no tag.
+export const roleLabels: Record<Section["role"], string> = {
+  frontmatter: "Front matter",
+  bodymatter: "",
+  backmatter: "End matter",
+  part: "Part",
+};
+
+export function sectionArticle(section: Section, publication: Publication, context: HtmlContext, kicker = ""): string {
+  const header = `<header class="chapter-header">${kicker ? `<p class="chapter-kicker">${escapeHtml(kicker)}</p>` : ""}<h1>${renderInlines(section.title, context)}</h1></header>`;
+  return `<article class="chapter ${section.role}" id="${escapeHtml(section.id)}">${header}<div class="prose">${renderBlocks(section.blocks, context)}${renderFootnotes(collectFootnotes(section.blocks), context)}</div></article>`;
 }

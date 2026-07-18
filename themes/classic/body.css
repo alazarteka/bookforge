@@ -5,10 +5,13 @@ body { margin: 0; }
 a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offset: .15em; }
 .chapter { max-width: var(--measure); margin: 0 auto; padding: 5rem 2rem 8rem; }
 .chapter-header { margin: 0 0 4rem; text-align: center; }
-.chapter-kicker { color: var(--accent); font: 600 .69rem/1.2 var(--sans); letter-spacing: .2em; text-transform: uppercase; }
-.chapter-header h1 { margin: .7rem 0 0; font-size: clamp(2.35rem, 8vw, 4.8rem); font-weight: 400; letter-spacing: -.035em; line-height: .98; text-wrap: balance; }
+.chapter-kicker { display: inline-flex; align-items: center; gap: .85rem; margin: 0; color: var(--accent); font: 600 .8rem/1 var(--sans); letter-spacing: .22em; text-transform: uppercase; font-variant-numeric: lining-nums; }
+.chapter-kicker::before, .chapter-kicker::after { content: ""; width: 1.5rem; height: 1px; background: currentColor; opacity: .55; }
+.chapter-header h1 { margin: 1rem 0 0; font-size: clamp(2.3rem, 7vw, 4.4rem); font-weight: 400; letter-spacing: -.025em; line-height: 1; text-wrap: balance; }
 .prose p { margin: 0; }
 .prose p + p { text-indent: 1.35em; }
+/* Classic drop cap — only when a chapter opens on a paragraph, so it never lands mid-content */
+.prose > p:first-child::first-letter { float: left; margin: .04em .1em 0 0; color: var(--accent); font-size: 3.4em; line-height: .72; font-weight: 500; }
 .prose h2, .prose h3, .prose h4 { margin: 3.25em 0 1em; line-height: 1.18; text-wrap: balance; }
 .prose h2 { font-size: 1.7rem; font-weight: 500; }
 .prose h3 { font: 600 .9rem/1.3 var(--sans); letter-spacing: .08em; text-transform: uppercase; }

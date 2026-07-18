@@ -74,7 +74,7 @@ export async function buildProject(project: string, requested?: Format[]): Promi
   if (unsupported.length) throw new Error(`Unknown formats: ${unsupported.join(", ")}`);
   const stage = await mkdtemp(path.join(projectRoot, ".bookforge-stage-"));
   try {
-    if (formats.includes("web")) await renderWeb(publication, theme, path.join(stage, "web"));
+    if (formats.includes("web")) await renderWeb(publication, theme, path.join(stage, "web"), config.outputs.web?.reading ?? "paged");
     if (formats.includes("epub")) {
       const epub = path.join(stage, "book.epub");
       await renderEpub(publication, theme, epub);

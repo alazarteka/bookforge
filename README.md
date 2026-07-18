@@ -70,6 +70,15 @@ require Bookforge, Node, or a web framework at reading time.
 project-local theme under `theme/` or `themes/<id>/`; Bookforge validates and
 packages its CSS and declared assets for web, EPUB, and PDF.
 
+The web edition reads as separate chapter pages by default, or as one
+continuous scroll of the whole book:
+
+```yaml
+outputs:
+  web:
+    reading: continuous   # or "paged" (default)
+```
+
 PDF geometry is independent from the theme:
 
 ```yaml
