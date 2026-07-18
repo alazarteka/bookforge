@@ -12,6 +12,8 @@ a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offse
 .prose p + p { text-indent: 1.35em; }
 /* Classic drop cap — only when a chapter opens on a paragraph, so it never lands mid-content */
 .prose > p:first-child::first-letter { float: left; margin: .04em .1em 0 0; color: var(--accent); font-size: 3.4em; line-height: .72; font-weight: 500; }
+/* Core marks paragraphs opening on punctuation (a quote/dash) so the drop cap never enlarges the mark */
+.prose > p.no-drop:first-child::first-letter { float: none; margin: 0; color: inherit; font-size: inherit; line-height: inherit; font-weight: inherit; }
 .prose h2, .prose h3, .prose h4 { margin: 3.25em 0 1em; line-height: 1.18; text-wrap: balance; }
 .prose h2 { font-size: 1.7rem; font-weight: 500; }
 .prose h3 { font: 600 .9rem/1.3 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
@@ -21,7 +23,7 @@ a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offse
 .scene-break::after { content: ""; display: block; width: .5rem; height: .5rem; margin: 0 auto; transform: rotate(45deg); background: var(--accent); }
 .prose ul, .prose ol { padding-left: 1.35rem; }
 .prose li { margin: .45rem 0; padding-left: .3rem; }
-.prose pre { overflow: auto; margin: 2rem 0; padding: 1rem 1.2rem; border: 1px solid var(--rule); border-radius: .35rem; background: color-mix(in srgb, var(--paper-deep) 58%, transparent); font: .78rem/1.55 var(--mono); }
+.prose pre { overflow: auto; margin: 2rem 0; padding: 1rem 1.2rem; border: 1px solid var(--rule); border-radius: .35rem; background: rgba(230, 217, 191, .58); background: color-mix(in srgb, var(--paper-deep) 58%, transparent); font: .78rem/1.55 var(--mono); }
 .prose :not(pre) > code { padding: .08em .28em; border-radius: .2em; background: var(--paper-deep); font-family: var(--mono); font-size: .82em; }
 .prose figure { margin: 2.75rem 0; }
 .prose img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
@@ -33,4 +35,4 @@ a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offse
 .footnotes { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); color: var(--ink-soft); font-size: .82rem; }
 .footnote-back { margin-left: .4em; color: var(--accent); }
 .footnote-back .fn-back { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vertical-align: baseline; }
-::selection { color: var(--ink); background: color-mix(in srgb, var(--accent) 28%, transparent); }
+::selection { color: var(--ink); background: rgba(155, 84, 47, .28); background: color-mix(in srgb, var(--accent) 28%, transparent); }

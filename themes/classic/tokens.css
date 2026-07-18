@@ -37,7 +37,7 @@
   --ink: #28251f;
   --ink-soft: #6f675b;
   --accent: #9b542f;
-  --rule: color-mix(in srgb, var(--ink) 18%, transparent);
+  --rule: rgba(40, 37, 31, .18); /* baked (was color-mix) so hairlines survive older EPUB engines; web night/light re-declare it */
   --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --sans: "Source Sans 3", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --mono: "Source Code Pro", ui-monospace, SFMono-Regular, Menlo, monospace;

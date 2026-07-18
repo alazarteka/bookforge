@@ -79,7 +79,16 @@ const renderFootnotes = (notes: Array<Extract<Inline, { type: "footnote" }>>, co
   const noteSemantic = context.flavor === "epub" ? ` epub:type="footnote"` : ` role="doc-endnote"`;
   // A drawn return arrow (not the ↩ glyph) so footnotes need no symbol font in any format.
   const backArrow = `<svg xmlns="http://www.w3.org/2000/svg" class="fn-back" viewBox="0 0 16 16" width="11" height="11" aria-hidden="true"><path d="M13 4v3.4a2 2 0 0 1-2 2H4" /><path d="M6.4 7 3.8 9.4l2.6 2.5" /></svg>`;
-  return `\n<section class="footnotes"${sectionSemantic}><ol>${notes.map((note) => `<li id="${note.id}"${noteSemantic}>${renderBlocks(note.blocks, context)}<a class="footnote-back" href="#${note.id}-ref" aria-label="Back to reference">${backArrow}</a></li>`).join("")}</ol></section>`;
+  return `\n<section class="footnotes"${sectionSemantic}><ol>${notes.map((note) => {
+    const backLink = `<a class="footnote-back" href="#${note.id}-ref" aria-label="Back to reference">${backArrow}</a>`;
+    // Flow the back-link into the last paragraph so it trails the text inline rather
+    // than dropping onto its own line (works even where CSS is ignored).
+    const last = note.blocks.at(-1);
+    const body = last && last.type === "paragraph"
+      ? `${renderBlocks(note.blocks.slice(0, -1), context)}<p>${renderInlines(last.children, context)}${backLink}</p>`
+      : `${renderBlocks(note.blocks, context)}${backLink}`;
+    return `<li id="${note.id}"${noteSemantic}>${body}</li>`;
+  }).join("")}</ol></section>`;
 }
 
 // Chapter openers show a numeral for body chapters and a part label for parts;
@@ -106,7 +115,26 @@ export const roleLabels: Record<Section["role"], string> = {
   part: "Part",
 };
 
+// The typographic cover, shared by web and EPUB so both formats present the same mark.
+export function coverMarkup(publication: Publication): string {
+  const { title, subtitle, authors } = publication.metadata;
+  return `<section class="cover" id="top"><div class="cover-inner"><div class="sigil" aria-hidden="true"></div><p class="cover-label">A Bookforge edition</p><h1 class="cover-title">${escapeHtml(title)}</h1>${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ""}<p class="authors">${authors.map(escapeHtml).join(" · ")}</p></div></section>`;
+}
+
 export function sectionArticle(section: Section, publication: Publication, context: HtmlContext, kicker = ""): string {
   const header = `<header class="chapter-header">${kicker ? `<p class="chapter-kicker">${escapeHtml(kicker)}</p>` : ""}<h1>${renderInlines(section.title, context)}</h1></header>`;
-  return `<article class="chapter ${section.role}" id="${escapeHtml(section.id)}">${header}<div class="prose">${renderBlocks(section.blocks, context)}${renderFootnotes(collectFootnotes(section.blocks), context)}</div></article>`;
+  // Suppress the drop cap when the chapter opens on non-letter punctuation (a quote or
+  // dash) — CSS ::first-letter would otherwise enlarge the punctuation mark.
+  const first = section.blocks[0];
+  let prose: string;
+  if (first?.type === "paragraph") {
+    const opening = inlineText(first.children).trim();
+    const noDrop = opening.length > 0 && !/^\p{L}/u.test(opening);
+    prose = noDrop
+      ? `<p class="no-drop">${renderInlines(first.children, context)}</p>\n${renderBlocks(section.blocks.slice(1), context)}`
+      : renderBlocks(section.blocks, context);
+  } else {
+    prose = renderBlocks(section.blocks, context);
+  }
+  return `<article class="chapter ${section.role}" id="${escapeHtml(section.id)}">${header}<div class="prose">${prose}${renderFootnotes(collectFootnotes(section.blocks), context)}</div></article>`;
 }

@@ -1,4 +1,20 @@
 html { font-size: 100%; background: transparent; }
 .chapter { max-width: none; padding: 1em; }
-.chapter-header { page-break-before: always; margin: 2.5em 0 3em; }
+/* Each chapter is its own spine document, so a page break here is redundant and yields a
+   blank leaf on some readers. */
+.chapter-header { margin: 2.5em 0 3em; }
 .chapter-header h1 { font-size: 2.4em; }
+/* Wrap long code lines instead of clipping (e-readers have no scrollbars). */
+.prose pre { white-space: pre-wrap; overflow-wrap: break-word; }
+/* Draw the scene break on the hr itself so it survives readers that ignore ::after on hr.
+   Failure ladder: diamond -> square (no transform) -> a visible rule. */
+.scene-break { width: .45em; height: .45em; margin: 1.7em auto; border: 0; background: var(--accent); transform: rotate(45deg); }
+.scene-break::after { content: none; }
+/* Conservative typographic cover for e-readers (no aspect-ratio / svh / animation). */
+.cover { text-align: center; padding: 12% 1em; }
+.sigil { position: relative; width: 5em; height: 5em; margin: 0 auto 1.6em; border: 1px solid var(--accent); border-radius: 50%; }
+.sigil::before { content: ""; position: absolute; inset: 34%; border-radius: 50%; background: var(--accent); }
+.cover-label { color: var(--accent); font: 600 .7em var(--sans); letter-spacing: .22em; text-transform: uppercase; }
+.cover-title { margin: .5em 0; font-size: 2.6em; font-weight: 400; line-height: 1; }
+.cover .subtitle { color: var(--ink-soft); font-style: italic; }
+.cover .authors { margin-top: 1.5em; color: var(--ink-soft); font: 600 .8em var(--sans); letter-spacing: .12em; text-transform: uppercase; }

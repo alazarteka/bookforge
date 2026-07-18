@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Publication, PublicationTheme } from "./model.js";
-import { roleLabels, sectionArticle, sectionKickers } from "./html.js";
+import { coverMarkup, roleLabels, sectionArticle, sectionKickers } from "./html.js";
 import { themeCss, writeThemeAssets } from "./theme-loader.js";
 import { escapeHtml, inlineText } from "./util.js";
 import { writeAssets } from "./assets.js";
@@ -42,11 +42,6 @@ function bar(publication: Publication, opts: { home: string; contents?: string }
   return `<div class="reading-progress" aria-hidden="true"></div><nav class="reader-bar" aria-label="Reader controls"><a class="brand" href="${opts.home}">Bookforge <span>· ${escapeHtml(publication.metadata.title)}</span></a><div class="tools">${contents}<div class="seg" role="group" aria-label="Text size"><button class="sizer sm" type="button" data-size-down aria-label="Decrease text size">A</button><button class="sizer lg" type="button" data-size-up aria-label="Increase text size">A</button></div><button class="pill width" type="button" data-width aria-pressed="false" aria-label="Toggle wide reading width">${widthIcon}</button><div class="seg themes" role="group" aria-label="Color theme">${swatch("sepia", "Sepia")}${swatch("light", "Light")}${swatch("night", "Night")}</div></div></nav>`;
 }
 
-function coverSection(publication: Publication): string {
-  const { title, subtitle, authors } = publication.metadata;
-  return `<section class="cover" id="top"><div class="cover-inner"><div class="sigil" aria-hidden="true"></div><p class="cover-label">A Bookforge edition</p><h1 class="cover-title">${escapeHtml(title)}</h1>${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ""}<p class="authors">${authors.map(escapeHtml).join(" · ")}</p></div></section>`;
-}
-
 function tocSection(publication: Publication, kickers: Map<string, string>, hrefFor: (id: string) => string): string {
   const rows = publication.spine.map((section) => {
     const index = kickers.get(section.id) ?? "";
@@ -74,12 +69,12 @@ export async function renderWeb(publication: Publication, theme: PublicationThem
   if (reading === "continuous") {
     const context = { flavor: "web" as const, assets, chapterFile: (id: string) => `#${id}`, assetPrefix: "assets/" };
     const articles = publication.spine.map((section) => sectionArticle(section, publication, context, kickers.get(section.id) ?? "")).join("\n");
-    const body = `${bar(publication, { home: "#top", contents: "#contents" })}<main class="continuous">${coverSection(publication)}${tocSection(publication, kickers, (id) => `#${id}`)}${articles}</main>`;
+    const body = `${bar(publication, { home: "#top", contents: "#contents" })}<main class="continuous">${coverMarkup(publication)}${tocSection(publication, kickers, (id) => `#${id}`)}${articles}</main>`;
     await writeFile(path.join(directory, "index.html"), documentShell(publication.metadata.title, publication.metadata.language, body, "reader.css", "reader.js"));
     return;
   }
 
-  const landing = `<main class="landing">${coverSection(publication)}${tocSection(publication, kickers, (id) => `chapters/${id}.html`)}</main>`;
+  const landing = `<main class="landing">${coverMarkup(publication)}${tocSection(publication, kickers, (id) => `chapters/${id}.html`)}</main>`;
   await writeFile(path.join(directory, "index.html"), documentShell(publication.metadata.title, publication.metadata.language, landing, "reader.css"));
   const chaptersDirectory = path.join(directory, "chapters");
   await mkdir(chaptersDirectory, { recursive: true });

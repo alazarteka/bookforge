@@ -1,5 +1,5 @@
-html[data-theme="night"] { --paper: #171815; --paper-deep: #25261f; --ink: #ddd4c4; --ink-soft: #aaa193; --accent: #d48a61; color-scheme: dark; }
-html[data-theme="light"] { --paper: #fbfaf6; --paper-deep: #ece9df; --ink: #22221f; --ink-soft: #66645e; --accent: #8e4b2c; }
+html[data-theme="night"] { --paper: #171815; --paper-deep: #25261f; --ink: #ddd4c4; --ink-soft: #aaa193; --accent: #d48a61; --rule: rgba(221, 212, 196, .2); color-scheme: dark; }
+html[data-theme="light"] { --paper: #fbfaf6; --paper-deep: #ece9df; --ink: #22221f; --ink-soft: #66645e; --accent: #8e4b2c; --rule: rgba(34, 34, 31, .16); }
 body::before { content: ""; position: fixed; inset: 0; pointer-events: none; opacity: .22; background-image: radial-gradient(#705f48 0.45px, transparent .6px); background-size: 5px 5px; mix-blend-mode: multiply; }
 .reader-bar { position: sticky; z-index: 20; top: 0; display: flex; align-items: center; gap: 1rem; min-height: 3.25rem; padding: .5rem max(1rem, env(safe-area-inset-left)); border-bottom: 1px solid var(--rule); background: color-mix(in srgb, var(--paper) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); font-family: var(--sans); }
 .reader-bar .brand { margin-right: auto; color: var(--ink); font: 650 .7rem/1 var(--sans); letter-spacing: .16em; text-decoration: none; text-transform: uppercase; white-space: nowrap; }

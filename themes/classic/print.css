@@ -1,10 +1,17 @@
-@page { size: var(--book-page, A5); margin: var(--book-margin, 20mm 18mm 22mm); bleed: var(--book-bleed, 0mm); @bottom-center { content: counter(page); color: #6f675b; font: 8pt var(--sans); } }
-@page chapter { @top-center { content: string(chapter-title); color: #6f675b; font: 7pt var(--sans); letter-spacing: .1em; text-transform: uppercase; } }
-@page :first { @bottom-center { content: none; } }
-@page chapter:first { @top-center { content: none; } @bottom-center { content: none; } }
+@page { size: var(--book-page, A5); margin: var(--book-margin, 20mm 18mm 22mm); bleed: var(--book-bleed, 0mm); @bottom-center { content: counter(page); color: var(--ink-soft); font: 8pt var(--sans); } }
+@page chapter { @top-center { content: string(chapter-title); color: var(--ink-soft); font: 7pt var(--sans); letter-spacing: .1em; text-transform: uppercase; } }
+@page :first { @top-center { content: none; } @bottom-center { content: none; } }
+/* NOTE: suppressing the running head on every chapter opener is not achievable here via
+   `@page chapter:first` — Vivliostyle follows the CSS spec where :first matches only the
+   document's first page, not the first page of each named-page run (the alternating-page
+   trick works in Prince/WeasyPrint, not Vivliostyle). Left for a targeted fix later. */
 html { font-size: 10.5pt; line-height: 1.62; background: white; }
 body { background: white; }
-html[data-color="grayscale"] { filter: grayscale(1); }
+/* Real grayscale: remap the ink tokens so vector text, rules, and ornaments print as gray
+   (a root filter never reaches @page margin boxes and risks rasterizing type); only raster
+   images get an actual grayscale filter. */
+html[data-color="grayscale"] { --accent: #3d3d3d; --ink: #111111; --ink-soft: #4a4a4a; --paper-deep: #ececec; --rule: rgba(0, 0, 0, .22); }
+html[data-color="grayscale"] img { filter: grayscale(1); }
 a { color: inherit; }
 .print-toc { break-after: page; }
 .print-toc li { display: flex; justify-content: space-between; border-bottom: .25pt solid var(--rule); padding: 2mm 0; }
@@ -14,6 +21,14 @@ a { color: inherit; }
 .chapter-header { margin: 0 0 15mm; }
 .chapter-header h1 { font-size: 27pt; string-set: chapter-title content(text); }
 .prose h2, .prose h3, .prose h4 { break-after: avoid; }
-.prose blockquote, .prose figure, .prose table, .prose pre { break-inside: avoid; }
+.prose blockquote, .prose figure { break-inside: avoid; }
+/* Wrap long code lines instead of amputating them (no scrollbars on paper). */
+.prose pre { overflow: visible; white-space: pre-wrap; overflow-wrap: break-word; }
+/* A page-tall table/note can't satisfy break-inside: avoid — let the block break, keep rows
+   and the header intact, and repeat the head after a page break. */
+.prose table { break-inside: auto; }
+.prose thead { display: table-header-group; }
+.prose tr, .prose li { break-inside: avoid; }
 .prose p { orphans: 2; widows: 2; }
-.footnotes { break-inside: avoid; }
+.footnotes { break-inside: auto; }
+.footnotes li { break-inside: avoid; }
