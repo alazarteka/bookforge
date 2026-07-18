@@ -16,12 +16,13 @@ a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offse
 .prose h2 { font-size: 1.7rem; font-weight: 500; }
 .prose h3 { font: 600 .9rem/1.3 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
 .prose blockquote { margin: 2.2rem 0; padding: .25rem 0 .25rem 1.5rem; border-left: 1px solid var(--accent); color: var(--ink-soft); font-style: italic; }
-.scene-break { width: 4.5rem; height: 1.5rem; margin: 3.25rem auto; border: 0; overflow: visible; text-align: center; }
-.scene-break::after { content: "✦  ·  ✦"; color: var(--accent); font-size: .65rem; letter-spacing: .38em; }
+/* Glyph-free scene break: a small accent diamond that echoes the sigil, so it needs no symbol font */
+.scene-break { width: 100%; height: auto; margin: 3.25rem auto; border: 0; text-align: center; }
+.scene-break::after { content: ""; display: block; width: .5rem; height: .5rem; margin: 0 auto; transform: rotate(45deg); background: var(--accent); }
 .prose ul, .prose ol { padding-left: 1.35rem; }
 .prose li { margin: .45rem 0; padding-left: .3rem; }
-.prose pre { overflow: auto; margin: 2rem 0; padding: 1rem 1.2rem; border: 1px solid var(--rule); border-radius: .35rem; background: color-mix(in srgb, var(--paper-deep) 58%, transparent); font: .78rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
-.prose :not(pre) > code { padding: .08em .28em; border-radius: .2em; background: var(--paper-deep); font-size: .84em; }
+.prose pre { overflow: auto; margin: 2rem 0; padding: 1rem 1.2rem; border: 1px solid var(--rule); border-radius: .35rem; background: color-mix(in srgb, var(--paper-deep) 58%, transparent); font: .78rem/1.55 var(--mono); }
+.prose :not(pre) > code { padding: .08em .28em; border-radius: .2em; background: var(--paper-deep); font-family: var(--mono); font-size: .82em; }
 .prose figure { margin: 2.75rem 0; }
 .prose img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
 .prose figcaption { margin-top: .75rem; color: var(--ink-soft); font: .72rem/1.5 var(--sans); text-align: center; }
@@ -30,4 +31,6 @@ a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offse
 .prose th { font: 600 .69rem/1.4 var(--sans); letter-spacing: .06em; text-transform: uppercase; }
 .footnote-ref { font-family: var(--sans); text-decoration: none; }
 .footnotes { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); color: var(--ink-soft); font-size: .82rem; }
+.footnote-back { margin-left: .4em; color: var(--accent); }
+.footnote-back .fn-back { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vertical-align: baseline; }
 ::selection { color: var(--ink); background: color-mix(in srgb, var(--accent) 28%, transparent); }

@@ -77,7 +77,9 @@ const renderFootnotes = (notes: Array<Extract<Inline, { type: "footnote" }>>, co
   if (!notes.length) return "";
   const sectionSemantic = context.flavor === "epub" ? ` epub:type="footnotes"` : ` role="doc-endnotes"`;
   const noteSemantic = context.flavor === "epub" ? ` epub:type="footnote"` : ` role="doc-endnote"`;
-  return `\n<section class="footnotes"${sectionSemantic}><ol>${notes.map((note) => `<li id="${note.id}"${noteSemantic}>${renderBlocks(note.blocks, context)}<a href="#${note.id}-ref" aria-label="Back to reference">↩</a></li>`).join("")}</ol></section>`;
+  // A drawn return arrow (not the ↩ glyph) so footnotes need no symbol font in any format.
+  const backArrow = `<svg xmlns="http://www.w3.org/2000/svg" class="fn-back" viewBox="0 0 16 16" width="11" height="11" aria-hidden="true"><path d="M13 4v3.4a2 2 0 0 1-2 2H4" /><path d="M6.4 7 3.8 9.4l2.6 2.5" /></svg>`;
+  return `\n<section class="footnotes"${sectionSemantic}><ol>${notes.map((note) => `<li id="${note.id}"${noteSemantic}>${renderBlocks(note.blocks, context)}<a class="footnote-back" href="#${note.id}-ref" aria-label="Back to reference">${backArrow}</a></li>`).join("")}</ol></section>`;
 }
 
 // Chapter openers show a numeral for body chapters and a part label for parts;

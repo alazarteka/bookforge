@@ -30,30 +30,23 @@ export async function renderEpub(publication: Publication, theme: PublicationThe
     await writeThemeAssets(theme, path.join(epubDir, "theme-assets"));
     const assets = new Map(publication.assets.map((asset) => [asset.id, asset]));
     const kickers = sectionKickers(publication.spine);
+    const svgSections = new Set<string>();
     for (const section of publication.spine) {
       const context = { flavor: "epub" as const, assets, chapterFile: (id: string) => `${id}.xhtml`, assetPrefix: "assets/" };
-      await writeFile(path.join(epubDir, `${section.id}.xhtml`), xhtml(inlineText(section.title), publication.metadata.language, sectionArticle(section, publication, context, kickers.get(section.id) ?? "")));
+      const article = sectionArticle(section, publication, context, kickers.get(section.id) ?? "");
+      if (article.includes("<svg")) svgSections.add(section.id);
+      await writeFile(path.join(epubDir, `${section.id}.xhtml`), xhtml(inlineText(section.title), publication.metadata.language, article));
     }
     const navItems = publication.spine.map((section) => `<li><a href="${section.id}.xhtml">${escapeXml(inlineText(section.title))}</a></li>`).join("");
     const nav = xhtml("Contents", publication.metadata.language, `<nav epub:type="toc" id="toc"><h1>Contents</h1><ol>${navItems}</ol></nav><nav epub:type="landmarks" hidden="hidden"><ol><li><a epub:type="bodymatter" href="${publication.spine.find((s) => s.role === "bodymatter")?.id ?? publication.spine[0]!.id}.xhtml">Begin reading</a></li></ol></nav>`);
     await writeFile(path.join(epubDir, "nav.xhtml"), nav);
-    let coverItem = "";
-    let coverMeta = "";
-    if (publication.cover) {
-      const coverAsset = assets.get(publication.cover.assetId);
-      if (coverAsset) {
-        coverItem = `<item id="cover-image" href="assets/${coverAsset.outputName}" media-type="${coverAsset.mediaType}" properties="cover-image"/><item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>`;
-        coverMeta = `<itemref idref="cover"/>`;
-        await writeFile(path.join(epubDir, "cover.xhtml"), xhtml("Cover", publication.metadata.language, `<section epub:type="cover"><img src="assets/${coverAsset.outputName}" alt="${escapeXml(publication.cover.alt)}"/></section>`));
-      }
-    }
-    const manifestChapters = publication.spine.map((section) => `<item id="item-${section.id}" href="${section.id}.xhtml" media-type="application/xhtml+xml"/>`).join("");
-    const manifestAssets = publication.assets.filter((asset) => asset.id !== publication.cover?.assetId).map((asset) => `<item id="${asset.id}" href="assets/${asset.outputName}" media-type="${asset.mediaType}"/>`).join("");
+    const manifestChapters = publication.spine.map((section) => `<item id="item-${section.id}" href="${section.id}.xhtml" media-type="application/xhtml+xml"${svgSections.has(section.id) ? ` properties="svg"` : ""}/>`).join("");
+    const manifestAssets = publication.assets.map((asset) => `<item id="${asset.id}" href="assets/${asset.outputName}" media-type="${asset.mediaType}"/>`).join("");
     const manifestThemeAssets = theme.assets.map((asset, index) => `<item id="theme-asset-${index + 1}" href="theme-assets/${asset.outputName}" media-type="${asset.mediaType}"/>`).join("");
     const spine = publication.spine.map((section) => `<itemref idref="item-${section.id}"/>`).join("");
     const modified = sourceEpochDate().toISOString().replace(/\.\d{3}Z$/, "Z");
     const opf = `<?xml version="1.0" encoding="UTF-8"?>
-<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id" xml:lang="${escapeXml(publication.metadata.language)}"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="pub-id">urn:bookforge:${escapeXml(publication.id)}</dc:identifier><dc:title>${escapeXml(publication.metadata.title)}</dc:title>${publication.metadata.subtitle ? `<dc:title id="subtitle">${escapeXml(publication.metadata.subtitle)}</dc:title><meta refines="#subtitle" property="title-type">subtitle</meta>` : ""}<dc:language>${escapeXml(publication.metadata.language)}</dc:language>${publication.metadata.authors.map((author) => `<dc:creator>${escapeXml(author)}</dc:creator>`).join("")}<meta property="dcterms:modified">${modified}</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="styles.css" media-type="text/css"/>${coverItem}${manifestChapters}${manifestAssets}${manifestThemeAssets}</manifest><spine>${coverMeta}${spine}</spine></package>`;
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id" xml:lang="${escapeXml(publication.metadata.language)}"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="pub-id">urn:bookforge:${escapeXml(publication.id)}</dc:identifier><dc:title>${escapeXml(publication.metadata.title)}</dc:title>${publication.metadata.subtitle ? `<dc:title id="subtitle">${escapeXml(publication.metadata.subtitle)}</dc:title><meta refines="#subtitle" property="title-type">subtitle</meta>` : ""}<dc:language>${escapeXml(publication.metadata.language)}</dc:language>${publication.metadata.authors.map((author) => `<dc:creator>${escapeXml(author)}</dc:creator>`).join("")}<meta property="dcterms:modified">${modified}</meta></metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/><item id="css" href="styles.css" media-type="text/css"/>${manifestChapters}${manifestAssets}${manifestThemeAssets}</manifest><spine>${spine}</spine></package>`;
     await writeFile(path.join(epubDir, "package.opf"), opf);
     await zipEpub(work, outputFile);
   } finally {

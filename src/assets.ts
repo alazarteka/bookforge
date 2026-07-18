@@ -6,9 +6,8 @@ import { containedPath, ensureFile, fileHash, sha256 } from "./util.js";
 
 const mediaTypes: Record<string, string> = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif" };
 
-export async function collectAssets(publication: Publication, projectRoot: string, coverPath?: string): Promise<void> {
+export async function collectAssets(publication: Publication, projectRoot: string): Promise<void> {
   const refs: Array<{ src: string; assign: (id: string) => void }> = [];
-  if (coverPath && publication.cover) refs.push({ src: coverPath, assign: (assetId) => { if (publication.cover) publication.cover.assetId = assetId; } });
   const visitInlines = (inlines: Inline[]) => inlines.forEach((inline) => {
     if (inline.type === "image") refs.push({ src: inline.src, assign: (assetId) => { inline.assetId = assetId; } });
     if (inline.type === "footnote") visitBlocks(inline.blocks);

@@ -6,9 +6,6 @@ language: en
 authors:
   - name: Bookforge
 theme: classic
-cover:
-  path: assets/marker.png
-  alt: A small square marker
 chapters:
   - id: threshold
     path: chapters/01-threshold.md

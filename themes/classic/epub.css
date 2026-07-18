@@ -2,4 +2,3 @@ html { font-size: 100%; background: transparent; }
 .chapter { max-width: none; padding: 1em; }
 .chapter-header { page-break-before: always; margin: 2.5em 0 3em; }
 .chapter-header h1 { font-size: 2.4em; }
-.scene-break::after { content: "*  *  *"; }

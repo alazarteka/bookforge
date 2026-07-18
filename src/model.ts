@@ -9,7 +9,6 @@ export interface BookConfig {
   language: string;
   authors: Array<{ name: string }>;
   theme: string;
-  cover?: { path: string; alt: string };
   chapters: Array<{ id: string; path: string; role: SectionRole; title?: string }>;
   outputs: {
     web?: { reading?: "paged" | "continuous" };
@@ -71,7 +70,6 @@ export interface Publication {
     language: string;
     authors: string[];
   };
-  cover?: { assetId: string; alt: string };
   spine: Section[];
   assets: Asset[];
 }

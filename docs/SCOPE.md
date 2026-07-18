@@ -66,7 +66,6 @@ my-book/
     01-opening.md
     02-second-chapter.md
   assets/
-    cover.jpg
     figures/
   theme/
     theme.yaml
@@ -88,9 +87,6 @@ language: en
 authors:
   - name: Example Author
 theme: classic
-cover:
-  path: assets/cover.jpg
-  alt: Abstract orbital diagram on parchment
 chapters:
   - id: the-give
     path: chapters/01-the-give.md
@@ -152,7 +148,6 @@ interface Publication {
   schemaVersion: 1;
   id: string;
   metadata: PublicationMetadata;
-  cover?: Figure;
   spine: Section[];
   assets: Asset[];
 }
@@ -233,7 +228,6 @@ Required:
 - One XHTML content document per spine section
 - Navigation document and landmarks
 - Correct language and publication metadata
-- Cover image and cover document
 - Semantic footnotes
 - Conservative EPUB-specific CSS
 - Embedded local fonts only when explicitly supplied

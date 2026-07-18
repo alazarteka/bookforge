@@ -32,12 +32,11 @@ export async function createPublication(projectRoot: string): Promise<{ publicat
       language: config.language,
       authors: config.authors.map((author) => author.name),
     },
-    ...(config.cover ? { cover: { assetId: "pending", alt: config.cover.alt } } : {}),
     spine,
     assets: [],
   };
   resolveChapterLinks(publication, config.chapters);
-  await collectAssets(publication, projectRoot, config.cover?.path);
+  await collectAssets(publication, projectRoot);
   hashes.push(theme.hash);
   for (const asset of [...publication.assets].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) hashes.push(asset.hash);
   return { publication, config, theme, sourceHash: sha256(hashes.join("\n\0\n")) };

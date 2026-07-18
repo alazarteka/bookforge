@@ -22,7 +22,6 @@ export const bookConfigSchema = z.object({
   language: z.string().min(2).default("en"),
   authors: z.array(z.object({ name: z.string().min(1) }).strict()).min(1),
   theme: z.string().min(1).default("classic"),
-  cover: z.object({ path: z.string().min(1), alt: z.string().min(1) }).strict().optional(),
   chapters: z.array(chapterSchema).min(1),
   outputs: z.object({
     web: z.object({ reading: z.enum(["paged", "continuous"]).default("paged") }).strict().optional(),
@@ -43,6 +42,5 @@ export async function loadConfig(projectRoot: string): Promise<BookConfig> {
     await ensureFile(containedPath(projectRoot, chapter.path), `Chapter ${chapter.id}`);
     if (!chapter.path.toLowerCase().endsWith(".md")) throw new Error(`Chapter must be Markdown: ${chapter.path}`);
   }
-  if (config.cover) await ensureFile(containedPath(projectRoot, config.cover.path), "Cover image");
   return config;
 }
