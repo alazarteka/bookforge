@@ -121,8 +121,16 @@ export function coverMarkup(publication: Publication): string {
   return `<section class="cover" id="top"><div class="cover-inner"><div class="sigil" aria-hidden="true"></div><p class="cover-label">A Bookforge edition</p><h1 class="cover-title">${escapeHtml(title)}</h1>${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ""}<p class="authors">${authors.map(escapeHtml).join(" · ")}</p></div></section>`;
 }
 
+// A title that already names its own number ("Chapter I", "Part 2", "IV.") makes the
+// numeral kicker redundant on the opener — suppress it there. The TOC still shows the number.
+function titleSelfNumbers(title: Inline[]): boolean {
+  const text = inlineText(title).trim();
+  return /^(chapter|part)\s/i.test(text) || /^[ivxlcdm]+\.?\s*$/i.test(text) || /^\d+\.?\s/.test(text);
+}
+
 export function sectionArticle(section: Section, publication: Publication, context: HtmlContext, kicker = ""): string {
-  const header = `<header class="chapter-header">${kicker ? `<p class="chapter-kicker">${escapeHtml(kicker)}</p>` : ""}<h1>${renderInlines(section.title, context)}</h1></header>`;
+  const showKicker = kicker && !titleSelfNumbers(section.title);
+  const header = `<header class="chapter-header">${showKicker ? `<p class="chapter-kicker">${escapeHtml(kicker)}</p>` : ""}<h1>${renderInlines(section.title, context)}</h1></header>`;
   // Suppress the drop cap when the chapter opens on non-letter punctuation (a quote or
   // dash) — CSS ::first-letter would otherwise enlarge the punctuation mark.
   const first = section.blocks[0];

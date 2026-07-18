@@ -1,6 +1,13 @@
-.print-cover { page: cover; break-after: page; height: calc(100vh - 2 * 20mm); display: grid; place-items: center; text-align: center; }
-.print-cover-inner { width: 78%; padding: 18mm 10mm; border: 1.1pt solid var(--ink); outline: .4pt solid var(--ink); outline-offset: -2.5mm; }
-.print-cover-label { font: 600 8pt/1.2 var(--sans); letter-spacing: .18em; text-transform: uppercase; }
+/* The cover owns its page geometry (zero margins) so its frame no longer depends on the
+   active print profile's margins. */
+@page cover { margin: 0; @top-center { content: none; } @bottom-center { content: none; } }
+.print-cover { page: cover; break-after: page; height: 100vh; box-sizing: border-box; padding: 22mm; display: grid; place-items: center; text-align: center; }
+.print-cover-inner { width: 82%; padding: 16mm 10mm; border: 1.1pt solid var(--ink); outline: .4pt solid var(--ink); outline-offset: -2.5mm; }
+/* The brand mark belongs on the printed cover too, not only on screen. */
+.print-cover .sigil { position: relative; width: 20mm; aspect-ratio: 1; margin: 0 auto 9mm; border: .75pt solid var(--accent); border-radius: 50%; }
+.print-cover .sigil::before { content: ""; position: absolute; inset: 20%; border: .75pt solid var(--accent); transform: rotate(45deg); }
+.print-cover .sigil::after { content: ""; position: absolute; inset: 36%; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1mm #fff; }
+.print-cover-label { font: 600 8pt/1.2 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
 .print-cover h1 { margin: .3em 0; font-size: 38pt; font-weight: 400; line-height: .95; }
 .print-cover .subtitle { color: var(--ink-soft); font-style: italic; }
-.print-cover .authors { margin-top: 10mm; }
+.print-cover .authors { margin-top: 10mm; font: 650 8.5pt/1.4 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); }

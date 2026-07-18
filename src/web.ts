@@ -20,8 +20,8 @@ const readerJs = `
   swatches.forEach(b => b.addEventListener("click", () => { root.dataset.theme = b.dataset.themeSet; syncTheme(); persist(); }));
   syncTheme();
   const widthButton = document.querySelector("[data-width]");
-  const syncWidth = () => widthButton?.setAttribute("aria-pressed", String(measure() >= 48));
-  widthButton?.addEventListener("click", () => { root.style.setProperty("--measure", (measure() >= 48 ? 42 : 50) + "rem"); syncWidth(); persist(); });
+  const syncWidth = () => widthButton?.setAttribute("aria-pressed", String(measure() >= 45));
+  widthButton?.addEventListener("click", () => { root.style.setProperty("--measure", (measure() >= 45 ? 42 : 46) + "rem"); syncWidth(); persist(); });
   syncWidth();
   document.querySelector("[data-size-down]")?.addEventListener("click", () => { root.style.fontSize = Math.max(14, parseFloat(getComputedStyle(root).fontSize) - 1) + "px"; persist(); });
   document.querySelector("[data-size-up]")?.addEventListener("click", () => { root.style.fontSize = Math.min(24, parseFloat(getComputedStyle(root).fontSize) + 1) + "px"; persist(); });
@@ -74,8 +74,8 @@ export async function renderWeb(publication: Publication, theme: PublicationThem
     return;
   }
 
-  const landing = `<main class="landing">${coverMarkup(publication)}${tocSection(publication, kickers, (id) => `chapters/${id}.html`)}</main>`;
-  await writeFile(path.join(directory, "index.html"), documentShell(publication.metadata.title, publication.metadata.language, landing, "reader.css"));
+  const landing = `${bar(publication, { home: "#top", contents: "#contents" })}<main class="landing">${coverMarkup(publication)}${tocSection(publication, kickers, (id) => `chapters/${id}.html`)}</main>`;
+  await writeFile(path.join(directory, "index.html"), documentShell(publication.metadata.title, publication.metadata.language, landing, "reader.css", "reader.js"));
   const chaptersDirectory = path.join(directory, "chapters");
   await mkdir(chaptersDirectory, { recursive: true });
   for (let index = 0; index < publication.spine.length; index++) {

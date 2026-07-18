@@ -14,10 +14,21 @@ html[data-color="grayscale"] { --accent: #3d3d3d; --ink: #111111; --ink-soft: #4
 html[data-color="grayscale"] img { filter: grayscale(1); }
 a { color: inherit; }
 .print-toc { break-after: page; }
-.print-toc li { display: flex; justify-content: space-between; border-bottom: .25pt solid var(--rule); padding: 2mm 0; }
-.print-toc a { display: flex; flex: 1; text-decoration: none; }
-.print-toc a::after { content: target-counter(attr(href), page); margin-left: auto; padding-left: 4mm; }
+.print-toc h1 { font-size: 20pt; font-weight: 400; letter-spacing: -.01em; margin: 0 0 9mm; }
+.print-toc ol { list-style: none; margin: 0; padding: 0; }
+.print-toc li { padding: 2.2mm 0; border-bottom: .25pt solid var(--rule); }
+.print-toc a { display: grid; grid-template-columns: 8mm 1fr auto; gap: 3mm; align-items: baseline; text-decoration: none; color: inherit; font-size: 10.5pt; }
+.print-toc .toc-index { color: var(--ink-soft); font: 9pt var(--sans); font-variant-numeric: tabular-nums; }
+.print-toc .toc-role { display: none; }
+.print-toc a::after { content: target-counter(attr(href), page); font: 9pt var(--sans); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
 .chapter { page: chapter; break-before: page; max-width: none; padding: 24mm 0 0; }
+/* Role-aware pages: front matter and part leaves carry no running head or folio; a part is a
+   centered half-title; perfect-bound books open body chapters recto. */
+.chapter.frontmatter, .chapter.part { page: quiet; }
+@page quiet { @top-center { content: none; } @bottom-center { content: none; } }
+.chapter.part { display: grid; align-content: center; min-height: 70vh; }
+.chapter.part .chapter-header { margin: 0; }
+html[data-binding="perfect"] .chapter.bodymatter, html[data-binding="perfect"] .chapter.part { break-before: right; }
 .chapter-header { margin: 0 0 15mm; }
 .chapter-header h1 { font-size: 27pt; string-set: chapter-title content(text); }
 .prose h2, .prose h3, .prose h4 { break-after: avoid; }
