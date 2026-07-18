@@ -11,7 +11,7 @@ export async function parseMarkdown(file: string, projectRoot: string, id: strin
   if (/^\s*<\/?[A-Za-z][^>]*>/m.test(source)) throw new Error(`${id}: raw HTML is not supported`);
   if (/!\[[^\]]*\]\(https?:\/\//i.test(source)) throw new Error(`${id}: remote images are not supported`);
   const result = await run("pandoc", [
-    "--from=gfm+footnotes+attributes-raw_html",
+    "--from=gfm+footnotes+attributes-raw_html+smart",
     "--to=json",
     "--wrap=none",
     file,
@@ -40,7 +40,7 @@ export async function parseMarkdown(file: string, projectRoot: string, id: strin
 
 function adaptInlines(nodes: unknown, state: State): Inline[] {
   if (!Array.isArray(nodes)) throw new Error(`${state.chapterId}: malformed inline list`);
-  return nodes.map((raw) => {
+  return nodes.flatMap((raw) => {
     const node = raw as PandocNode;
     if (node.t === "Str") return { type: "text", value: String(node.c) } as Inline;
     if (node.t === "Space") return { type: "space" } as Inline;
@@ -73,9 +73,12 @@ function adaptInlines(nodes: unknown, state: State): Inline[] {
       return { type: "footnote", id: `${state.chapterId}-fn-${footnote}`, blocks: adaptBlocks(node.c, state) } as Inline;
     }
     if (node.t === "Quoted") {
+      // `smart` parsing emits Quoted nodes; render the curly marks as plain text
+      // around the (possibly rich) contents. A neutral expansion — never emphasis,
+      // which would silently italicize every quotation.
       const [quoteType, content] = node.c as [PandocNode, unknown];
       const marks = quoteType.t === "SingleQuote" ? ["‘", "’"] : ["“", "”"];
-      return { type: "emphasis", children: [{ type: "text", value: marks[0] }, ...adaptInlines(content, state), { type: "text", value: marks[1] }] } as Inline;
+      return [{ type: "text", value: marks[0] }, ...adaptInlines(content, state), { type: "text", value: marks[1] }] as Inline[];
     }
     throw new Error(`${state.chapterId}: unsupported inline construct ${node.t}`);
   });

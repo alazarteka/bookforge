@@ -1,3 +1,21 @@
+/* Bundled reading face — one variable woff2 per style covers the 400–700 axis,
+   so web, EPUB, and print render the same text regardless of installed fonts.
+   System serifs remain as graceful fallbacks if the bundled font fails to load. */
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("theme-assets/source-serif-4-variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("theme-assets/source-serif-4-variable-italic.woff2") format("woff2");
+}
+
 :root {
   --paper: #f3ecdc;
   --paper-deep: #e6d9bf;
@@ -5,7 +23,7 @@
   --ink-soft: #6f675b;
   --accent: #9b542f;
   --rule: color-mix(in srgb, var(--ink) 18%, transparent);
-  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
   --measure: 42rem;
 }

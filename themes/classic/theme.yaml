@@ -9,4 +9,6 @@ styles:
   epub: epub.css
   print: print.css
   cover: cover.css
-assets: []
+assets:
+  - fonts/source-serif-4-variable.woff2
+  - fonts/source-serif-4-variable-italic.woff2
