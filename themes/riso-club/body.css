@@ -1,0 +1,60 @@
+/* Cross-format core. Conservative CSS only (targets ~2018 engines): no color-mix, no
+   modern colour functions — every translucent value is baked in tokens.css. Web-only
+   flourishes (halftone sigil, night/light modes, texture) live in web.css. */
+
+* { box-sizing: border-box; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+html { color: var(--ink); background: var(--paper); font-family: var(--sans); font-size: 17px; line-height: 1.62; }
+body { margin: 0; }
+
+/* Links stay BLUE (coral is never body-size text) — the spot colour appears only as the
+   underline, i.e. as a drawn rule, not as text. */
+a { color: var(--ink); text-decoration-color: var(--accent); text-decoration-thickness: .12em; text-underline-offset: .16em; }
+
+.chapter { max-width: var(--measure); margin: 0 auto; padding: 4.5rem 2rem 8rem; }
+
+/* Left-aligned, asymmetric openers — the diametric opposite of Classic's centred title. */
+.chapter-header { margin: 0 0 3.5rem; text-align: left; }
+/* Kicker = a solid coral bar with the numeral knocked out in paper colour. */
+.chapter-kicker { display: inline-block; margin: 0; padding: .34em .8em .28em; background: var(--accent); color: var(--paper); font: 700 .78rem/1 var(--sans); letter-spacing: .16em; text-transform: uppercase; font-variant-numeric: lining-nums; }
+.chapter-header h1 { margin: 1.1rem 0 0; padding-bottom: .28em; border-bottom: 7px solid var(--accent); font-family: var(--display); font-weight: 800; font-size: clamp(2.5rem, 9vw, 5rem); letter-spacing: -.01em; line-height: .9; text-transform: uppercase; text-wrap: balance; text-shadow: .045em .045em 0 var(--misreg); }
+
+.prose p { margin: 0; }
+.prose p + p { margin-top: 1.05em; }
+/* No drop cap (zines don't do them) — the opening paragraph is SHOUTED bold instead. */
+.prose > p:first-child { font-weight: 600; }
+
+.prose h2, .prose h3, .prose h4 { margin: 2.6em 0 .9em; line-height: 1.12; text-wrap: balance; }
+.prose h2 { font-family: var(--display); font-weight: 800; font-size: 1.55rem; letter-spacing: -.005em; text-transform: uppercase; }
+.prose h3 { font: 700 .82rem/1.3 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-soft); }
+.prose h4 { font: 700 .78rem/1.3 var(--sans); letter-spacing: .1em; text-transform: uppercase; }
+
+.prose blockquote { margin: 2.2rem 0; padding: .3rem 0 .3rem 1.3rem; border-left: 5px solid var(--accent); color: var(--ink-soft); font-style: italic; }
+
+/* Scene break: a fat coral bar, hard LEFT — asymmetry as attitude. Drawn on the <hr>
+   itself (not a pseudo-element), so it survives every reader; epub.css reaffirms it. */
+.scene-break { width: 3rem; height: 5px; margin: 3rem 0; border: 0; background: var(--accent); }
+
+.prose ul, .prose ol { padding-left: 1.4rem; }
+.prose li { margin: .4rem 0; padding-left: .3rem; }
+.prose li::marker { color: var(--accent); }
+
+.prose pre { overflow: auto; margin: 2rem 0; padding: 1rem 1.2rem; border: 1px solid var(--rule); border-left: 4px solid var(--accent); background: var(--panel); font: .8rem/1.55 var(--mono); }
+.prose :not(pre) > code { padding: .1em .3em; background: var(--paper-deep); font-family: var(--mono); font-size: .82em; }
+
+.prose figure { margin: 2.75rem 0; }
+.prose img { display: block; max-width: 100%; height: auto; }
+.prose figcaption { margin-top: .7rem; color: var(--ink-soft); font: .72rem/1.5 var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+
+.prose table { width: 100%; margin: 2.5rem 0; border-collapse: collapse; font-size: .86rem; }
+.prose table { border-top: 3px solid var(--accent); }
+.prose th, .prose td { padding: .55rem .65rem; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+.prose th { font: 700 .68rem/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
+
+.footnote-ref { font-family: var(--mono); font-weight: 700; text-decoration: none; }
+.footnotes { margin-top: 4rem; padding-top: 1.4rem; border-top: 3px solid var(--accent); color: var(--ink-soft); font: .82rem/1.6 var(--mono); }
+.footnote-back { margin-left: .4em; color: var(--accent); }
+.footnote-back .fn-back { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vertical-align: baseline; }
+
+::selection { color: var(--paper); background: var(--ink); }

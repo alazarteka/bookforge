@@ -1,0 +1,17 @@
+schema: 1
+id: meridian
+name: Meridian
+version: 1.0.0
+styles:
+  tokens: tokens.css
+  body: body.css
+  web: web.css
+  epub: epub.css
+  print: print.css
+  cover: cover.css
+assets:
+  - fonts/plex-sans.woff2
+  - fonts/plex-serif.woff2
+  - fonts/plex-serif-italic.woff2
+  - fonts/plex-mono.woff2
+  - fonts/plex-mono-600.woff2

@@ -1,0 +1,24 @@
+/* EPUB layer — subtract, don't add. No color-mix, no evergreen-only tricks; ornaments degrade
+   to visible fallbacks on weak engines. Each section is its own spine document, so no forced
+   page breaks are added here. */
+html { font-size: 100%; background: transparent; }
+.chapter { max-width: none; padding: 1em; }
+.chapter-header { margin: 1.5em 0 2.5em; padding-bottom: 1em; }
+.chapter-header h1 { font-size: 2.1em; }
+
+/* Wrap long code lines instead of clipping them (e-readers have no scrollbars). */
+.prose pre { overflow: visible; white-space: pre-wrap; overflow-wrap: break-word; }
+
+/* Scene break: reinforce the dashed rule with a solid short rule for readers that render
+   dashed borders poorly. Failure ladder: dashed/solid rule -> default hr rule -> visible break. */
+.scene-break { width: 3.5em; height: 0; margin: 2.2em auto; border: 0; border-top: 1px solid var(--accent); }
+
+/* Conservative typographic cover for e-readers (no aspect-ratio / svh / grid). */
+.cover { text-align: left; padding: 10% 1em; border-top: 3px solid var(--accent); }
+.sigil { position: relative; width: 4.5em; height: 4.5em; margin: 0 0 1.6em; border: 1px solid var(--accent); border-radius: 50%; }
+/* Registration crosshair via background gradients; degrades to just the ring if unsupported. */
+.sigil::before { content: ""; position: absolute; left: -8%; right: -8%; top: -8%; bottom: -8%; background: linear-gradient(var(--accent), var(--accent)) center / 100% 1px no-repeat, linear-gradient(var(--accent), var(--accent)) center / 1px 100% no-repeat; }
+.cover-label { color: var(--accent); font: 600 .7em var(--mono); letter-spacing: .2em; text-transform: uppercase; }
+.cover-title { margin: .4em 0; font-size: 2.5em; font-weight: 600; line-height: 1.02; }
+.cover .subtitle { color: var(--ink-soft); font-family: var(--serif); font-style: italic; }
+.cover .authors { margin-top: 1.5em; color: var(--ink-soft); font: 600 .78em var(--mono); letter-spacing: .12em; text-transform: uppercase; }

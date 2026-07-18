@@ -1,0 +1,74 @@
+/* Print layer (Vivliostyle). Verso running head = book title, recto = chapter title, both
+   flush to the outer edge; folios flush-outside; front matter and part leaves carry no
+   furniture; perfect-bound books open body chapters recto. */
+
+@page {
+  size: var(--book-page, A5);
+  margin: var(--book-margin, 20mm 18mm 22mm);
+  bleed: var(--book-bleed, 0mm);
+}
+/* Verso (left) pages: book title and folio flush to the outer (left) edge. */
+@page :left {
+  @top-left { content: string(book-title); color: var(--ink-soft); font: 7pt var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+  @bottom-left { content: counter(page); color: var(--ink-soft); font: 8pt var(--sans); font-variant-numeric: lining-nums; }
+}
+/* Recto (right) pages: chapter title and folio flush outer (right). `first-except` blanks the
+   chapter title on every opener page (where the <h1> sets the string), so chapter openings
+   carry no running head — per page, not per document, so it works for every chapter. */
+@page :right {
+  @top-right { content: string(chapter-title, first-except); color: var(--ink-soft); font: 7pt var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+  @bottom-right { content: counter(page); color: var(--ink-soft); font: 8pt var(--sans); font-variant-numeric: lining-nums; }
+}
+
+html { font-size: 10.5pt; line-height: 1.62; background: white; }
+body { background: white; }
+
+/* Real grayscale: remap the ink tokens so vector text, rules, and ornaments print as gray
+   (a root filter never reaches @page margin boxes and risks rasterizing type); oxblood and
+   ink-blue collapse to near-black — the design is structural, so nothing is lost. Only raster
+   images get an actual grayscale filter. */
+html[data-color="grayscale"] { --accent: #2e2e2e; --accent-2: #3c3c3c; --ink: #111111; --ink-soft: #4a4a4a; --paper-deep: #ececec; --rule: rgba(0, 0, 0, .22); }
+html[data-color="grayscale"] img { filter: grayscale(1); }
+
+a { color: inherit; }
+
+/* Print TOC — quiet 400/600 hierarchy with paged-media dotted leaders to the folio. */
+.print-toc { break-after: page; }
+.print-toc h1 { font-size: 19pt; font-weight: 600; letter-spacing: -.01em; margin: 0 0 9mm; }
+.print-toc ol { list-style: none; margin: 0; padding: 0; }
+.print-toc li { padding: 2.1mm 0; border-bottom: .25pt solid var(--rule); }
+.print-toc a { display: block; text-decoration: none; color: inherit; font-size: 10.5pt; }
+.print-toc .toc-index { color: var(--accent); font: 500 8.5pt var(--sans); font-variant-numeric: tabular-nums lining-nums; margin-right: 3mm; }
+.print-toc .toc-role { display: none; }
+.print-toc a::after { content: leader(". ") target-counter(attr(href), page); color: var(--ink-soft); font-variant-numeric: tabular-nums lining-nums; }
+
+/* Body chapters own the default (verso/recto) page; break to a fresh page at each. */
+.chapter { break-before: page; max-width: none; padding: 22mm 0 0; }
+.chapter-header { margin: 0 0 12mm; padding-bottom: 4mm; }
+.chapter-header h1 { font-size: 24pt; string-set: chapter-title content(text); }
+.chapter-kicker { margin-bottom: 5mm; }
+
+/* Role-aware pages: front and back matter and part leaves carry no running head or folio. */
+.chapter.frontmatter, .chapter.backmatter, .chapter.part { page: quiet; }
+@page quiet { @top-left { content: none } @top-right { content: none } @bottom-left { content: none } @bottom-right { content: none } }
+/* A part is a centered half-title leaf. */
+.chapter.part { display: grid; align-content: center; min-height: 68vh; }
+.chapter.part .chapter-header { margin: 0; border: 0; }
+/* Perfect-bound books open body chapters (and parts) on a recto. */
+html[data-binding="perfect"] .chapter.bodymatter, html[data-binding="perfect"] .chapter.part { break-before: right; }
+
+/* The book title running head is set once from the printed cover and persists. */
+.print-cover h1 { string-set: book-title content(text); }
+
+.prose h2, .prose h3, .prose h4 { break-after: avoid; }
+.prose blockquote, .prose figure { break-inside: avoid; }
+/* Wrap long code lines rather than amputating them (no scrollbars on paper). */
+.prose pre { overflow: visible; white-space: pre-wrap; overflow-wrap: break-word; }
+/* A page-tall table can't satisfy break-inside: avoid — let it break, keep rows intact, and
+   repeat the header after a page break. */
+.prose table { break-inside: auto; }
+.prose thead { display: table-header-group; }
+.prose tr, .prose li { break-inside: avoid; }
+.prose p { orphans: 2; widows: 2; }
+.footnotes { break-inside: auto; }
+.footnotes li { break-inside: avoid; }

@@ -1,0 +1,13 @@
+/* Print cover — the swing on paper. Owns its page geometry (zero margins) so the frame
+   never depends on the active profile's margins. Asymmetric, hard left, oversized Expanded
+   title with an off-register coral second pass; the halftone-disc sigil renders through
+   Vivliostyle's Chromium engine. */
+@page cover { margin: 0; @top-center { content: none; } @bottom-left { content: none; } @bottom-right { content: none; } }
+
+.print-cover { page: cover; break-after: page; height: 100vh; box-sizing: border-box; padding: 22mm; display: grid; align-content: center; justify-items: start; text-align: left; }
+.print-cover-inner { width: 100%; }
+.print-cover .sigil { position: relative; width: 26mm; height: 26mm; margin: 0 0 12mm; border-radius: 50%; background-color: var(--paper-deep); background-image: radial-gradient(var(--accent) .5mm, transparent .62mm); background-size: 2.4mm 2.4mm; box-shadow: inset 0 0 0 .8mm var(--ink); }
+.print-cover-label { display: inline-block; margin: 0; color: var(--accent); font: 800 8pt/1.2 var(--sans); letter-spacing: .22em; text-transform: uppercase; }
+.print-cover h1 { margin: 3mm 0 0; font-family: var(--display); font-weight: 800; font-size: 46pt; line-height: .86; letter-spacing: -.01em; text-transform: uppercase; text-shadow: .05em .05em 0 var(--accent-ghost); }
+.print-cover .subtitle { margin: 6mm 0 0; color: var(--ink-soft); font-style: italic; font-size: 13pt; }
+.print-cover .authors { margin: 14mm 0 0; color: var(--ink); font: 700 9pt/1.4 var(--mono); letter-spacing: .12em; text-transform: uppercase; }

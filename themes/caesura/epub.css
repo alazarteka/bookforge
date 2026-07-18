@@ -1,0 +1,21 @@
+/* EPUB layer: subtract and harden. Each section is its own spine document, so no
+   forced page breaks; everything else stays as conservative as the reader engine. */
+html { font-size: 100%; background: transparent; }
+.chapter { max-width: none; padding: 1em; }
+.chapter-header { margin: 2em 0 3.5em; }
+.chapter-header h1 { font-size: 2.2em; }
+
+/* Wrap long code lines rather than clipping them (e-readers have no scrollbars). */
+.prose pre { white-space: pre-wrap; overflow-wrap: break-word; }
+
+/* Restore a faint, centered hairline for the scene break here only: pure whitespace can
+   vanish into a page turn on an e-reader, so the pause gets the smallest visible mark. */
+.scene-break { width: 2rem; height: auto; margin: 2.4em auto; border: 0; border-top: 1px solid var(--ink-soft); opacity: .5; background: none; }
+
+/* Conservative typographic cover (no svh / animation / flex tricks). */
+.cover { text-align: center; padding: 14% 1em; }
+.sigil { width: 4em; height: 4em; margin: 0 auto 2.2em; border: 1px solid var(--accent); border-radius: 50%; }
+.cover-label { color: var(--ink-soft); font: .68em var(--serif); letter-spacing: .3em; text-transform: uppercase; }
+.cover-title { margin: .6em 0 0; font-family: var(--display); font-size: 2.6em; font-weight: 500; line-height: 1.05; }
+.cover .subtitle { margin-top: 1em; color: var(--ink-soft); font-style: italic; }
+.cover .authors { margin-top: 2.4em; color: var(--ink-soft); font: .78em var(--serif); letter-spacing: .22em; text-transform: uppercase; }

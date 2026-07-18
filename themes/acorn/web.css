@@ -1,0 +1,75 @@
+/* "Lamplight" bedtime night — a warm brown dusk, never a true black terminal — and a
+   brighter daytime light. Both keep body contrast >=7:1 and the two accents legible. */
+html[data-theme="night"] { --paper: #221f1a; --paper-deep: #2e2a22; --ink: #efe6d2; --ink-soft: #b0a691; --accent: #8fc79e; --accent-sun: #e8b36a; --rule: rgba(239, 230, 210, .16); --texture-dot: rgba(239, 230, 210, .05); color-scheme: dark; }
+html[data-theme="light"] { --paper: #fffefa; --paper-deep: #f4ecda; --ink: #2b2823; --ink-soft: #6f665a; --accent: #356b44; --accent-sun: #b97d2c; --rule: rgba(43, 40, 35, .16); --texture-dot: rgba(120, 100, 70, .16); }
+/* A whisper of warm paper grain painted under the content (not a fixed overlay that dirties
+   images); tokenized so night gets its own faint tactility instead of nothing. */
+body { background-image: radial-gradient(var(--texture-dot, rgba(120, 100, 70, .14)) .5px, transparent .7px); background-size: 8px 8px; background-position: 0 0; }
+
+/* Blockquote / pre fills follow the mode instead of the baked daylight value in body.css. */
+html[data-theme="night"] .prose blockquote, html[data-theme="light"] .prose blockquote,
+html[data-theme="night"] .prose pre, html[data-theme="light"] .prose pre { background: var(--paper-deep); }
+
+/* Reader bar — big, rounded, generous touch targets; families actually use these controls. */
+.reader-bar { position: sticky; z-index: 20; top: 0; display: flex; align-items: center; gap: 1rem; min-height: 3.9rem; padding: .55rem max(1rem, env(safe-area-inset-left)); border-bottom: 2px solid var(--rule); background: color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); font-family: var(--display); }
+.reader-bar .brand { margin-right: auto; color: var(--ink); font: 700 .95rem/1 var(--display); letter-spacing: .01em; text-decoration: none; white-space: nowrap; }
+.reader-bar .brand span { color: var(--ink-soft); font-weight: 600; }
+.reader-bar .tools { display: flex; align-items: center; gap: .5rem; }
+/* one control system: round segments of round buttons */
+.reader-bar .seg { display: inline-flex; align-items: stretch; border: 2px solid var(--rule); border-radius: 999px; background: color-mix(in srgb, var(--paper-deep) 40%, transparent); }
+.reader-bar .seg > button + button { border-left: 2px solid var(--rule); }
+.reader-bar button, .reader-bar .pill { display: inline-flex; align-items: center; justify-content: center; min-width: 2.6rem; height: 2.6rem; padding: 0 .6rem; border: 0; border-radius: 999px; color: var(--ink); background: transparent; font-family: var(--display); font-weight: 600; line-height: 1; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color .15s ease, color .15s ease, box-shadow .15s ease; }
+.reader-bar .pill { border: 2px solid var(--rule); background: color-mix(in srgb, var(--paper-deep) 40%, transparent); }
+.reader-bar button:hover, .reader-bar .pill:hover { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.reader-bar button:active, .reader-bar .pill:active { background: color-mix(in srgb, var(--accent) 26%, transparent); }
+/* The size stepper is the hero control — give it the accent ring so it reads as promoted. */
+.reader-bar .seg:not(.themes) { border-color: color-mix(in srgb, var(--accent) 55%, var(--rule)); background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.reader-bar .seg:not(.themes) button { color: var(--accent); }
+.reader-bar .seg .sizer.sm { font: 700 .95rem/1 var(--display); }
+.reader-bar .seg .sizer.lg { font: 700 1.4rem/1 var(--display); }
+.reader-bar svg { display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.reader-bar .width[aria-pressed="true"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 55%, var(--rule)); background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.reader-bar .swatch { min-width: 2.6rem; }
+.reader-bar .sw { width: 1.3rem; height: 1.3rem; border-radius: 50%; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ink) 26%, transparent); }
+.reader-bar .sw-sepia { background: #fdf8ec; }
+.reader-bar .sw-light { background: #fffefa; }
+.reader-bar .sw-night { background: #221f1a; }
+.reader-bar .swatch[aria-pressed="true"] .sw { box-shadow: 0 0 0 2.5px var(--paper), 0 0 0 4.5px var(--accent-sun); }
+.reader-bar button:focus-visible, .reader-bar .pill:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (pointer: coarse) { .reader-bar button, .reader-bar .pill { min-width: 2.9rem; height: 2.9rem; } }
+.reading-progress { position: fixed; z-index: 30; top: 0; left: 0; width: var(--progress, 0%); height: 4px; border-radius: 0 4px 4px 0; background: var(--accent-sun); }
+
+/* Cover — a Baloo title over a round acorn roundel with a marigold sun-disc behind. */
+.cover { min-height: 100svh; display: grid; place-items: center; padding: 4.5rem 1.5rem; text-align: center; }
+.cover-inner { width: min(48rem, 100%); }
+/* The element is the marigold sun-disc; the green nut and its cap stack on top (avoids a
+   negative z-index, which the bob animation's stacking context would paint over). */
+.sigil { position: relative; width: 9rem; height: 9rem; margin: 0 auto 2.4rem; border-radius: 50%; background: var(--accent-sun); }
+.sigil::before { content: ""; position: absolute; width: 7rem; height: 7rem; left: 50%; top: 50%; transform: translate(-50%, -44%); border-radius: 50%; background: var(--accent); }
+.sigil::after { content: ""; position: absolute; width: 5.2rem; height: 2.7rem; left: 50%; top: .55rem; transform: translateX(-50%); border-radius: 2.8rem 2.8rem .5rem .5rem; background: var(--accent-sun); }
+.cover-label { display: inline-block; color: var(--accent); font: 700 .8rem/1 var(--display); letter-spacing: .1em; text-transform: uppercase; }
+.cover-title { margin: .9rem 0 0; font-family: var(--display); font-size: clamp(3rem, 11vw, 6rem); font-weight: 700; letter-spacing: .01em; line-height: 1.02; text-wrap: balance; }
+.cover .subtitle { margin: 1.3rem auto 0; max-width: 32rem; color: var(--ink-soft); font-size: 1.25rem; font-style: italic; }
+.cover .authors { margin: 2.2rem 0 0; color: var(--ink-soft); font: 600 1rem/1.5 var(--display); letter-spacing: .02em; }
+
+/* TOC — fat, tappable rows; Baloo titles; each index in a round green-tinted coin. */
+.toc { max-width: 42rem; margin: 0 auto; padding: 3.5rem 1.75rem 6rem; }
+.toc h2 { margin: 0 0 1.6rem; font-family: var(--display); font-weight: 700; font-size: 2.2rem; }
+.toc ol { margin: 0; padding: 0; list-style: none; }
+.toc a { display: grid; grid-template-columns: 2.6rem 1fr auto; align-items: center; gap: 1.1rem; padding: 1.35rem .5rem; border-radius: 1rem; color: var(--ink); text-decoration: none; transition: background-color .15s ease; }
+.toc a:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.toc-index { display: inline-flex; align-items: center; justify-content: center; width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--paper-deep); color: var(--accent); font: 700 1rem/1 var(--display); font-variant-numeric: tabular-nums lining-nums; }
+.toc-title { font-family: var(--display); font-weight: 600; font-size: 1.25rem; }
+.toc-role { align-self: center; color: var(--ink-soft); font: 600 .72rem/1.6 var(--display); letter-spacing: .06em; text-transform: uppercase; }
+.chapter-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: var(--measure); margin: 0 auto; padding: 2rem 1.75rem 5rem; border-top: 2px solid var(--rule); font-family: var(--display); }
+.chapter-nav a { color: var(--ink); font-weight: 600; font-size: .95rem; text-decoration: none; }
+.chapter-nav a:hover { color: var(--accent); }
+.chapter-nav .next { text-align: right; }
+/* Visible keyboard focus on every link a reader can reach */
+a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+/* continuous (single-page) reading + the paged landing both sit under the sticky bar */
+.continuous .cover, .landing .cover { min-height: calc(100svh - 3.9rem); }
+.continuous .toc { border-top: 2px solid var(--rule); border-bottom: 2px solid var(--rule); }
+.continuous .chapter { border-top: 2px solid var(--rule); }
+@media (max-width: 600px) { html { font-size: 18px; } .chapter { padding: 3.25rem 1.15rem 4.5rem; } .reader-bar .brand span { display: none; } .reader-bar { gap: .6rem; } .reader-bar .tools { gap: .4rem; } .reader-bar .width { display: none; } }
+@media (prefers-reduced-motion: no-preference) { .sigil { animation: acorn-bob 7s ease-in-out infinite; } @keyframes acorn-bob { 50% { transform: translateY(-6px) rotate(-3deg); } } }

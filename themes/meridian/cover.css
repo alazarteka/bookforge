@@ -1,0 +1,14 @@
+/* Print cover — owns its page geometry (zero margins) so its frame doesn't depend on the active
+   profile's margins. A flat, left-aligned title block under a signal-blue drawing border, with
+   the registration-crosshair mark carried over from screen. */
+@page cover { margin: 0; @top-left { content: none; } @top-right { content: none; } @bottom-left { content: none; } @bottom-right { content: none; } }
+.print-cover { page: cover; break-after: page; height: 100vh; box-sizing: border-box; padding: 24mm; display: grid; align-content: end; text-align: left; }
+.print-cover-inner { border-top: 2pt solid var(--accent); padding-top: 10mm; }
+/* Registration crosshair: ring + full hairlines + centre point, mirroring the screen sigil. */
+.print-cover .sigil { position: relative; width: 22mm; aspect-ratio: 1; margin: 0 0 12mm; border: .75pt solid var(--accent); border-radius: 50%; }
+.print-cover .sigil::before { content: ""; position: absolute; left: -10%; right: -10%; top: -10%; bottom: -10%; background: linear-gradient(var(--accent), var(--accent)) center / 100% .75pt no-repeat, linear-gradient(var(--accent), var(--accent)) center / .75pt 100% no-repeat; }
+.print-cover .sigil::after { content: ""; position: absolute; top: 50%; left: 50%; width: 2mm; height: 2mm; transform: translate(-50%, -50%); border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 1mm #fff; }
+.print-cover-label { font: 600 8pt/1.2 var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
+.print-cover h1 { margin: 3mm 0; font-size: 34pt; font-weight: 600; line-height: .98; letter-spacing: -.02em; }
+.print-cover .subtitle { color: var(--ink-soft); font-family: var(--serif); font-style: italic; font-size: 13pt; }
+.print-cover .authors { margin-top: 12mm; font: 600 8.5pt/1.4 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); }

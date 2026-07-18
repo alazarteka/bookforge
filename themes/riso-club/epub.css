@@ -1,0 +1,41 @@
+/* EPUB layer: it exists to SUBTRACT. Pin static Archivo instances so body weight never
+   collapses to the variable default on engines with patchy axis support, keep the cover
+   conservative, and make the scene break survive readers that ignore pseudo-elements. */
+
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("theme-assets/archivo-regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("theme-assets/archivo-bold.woff2") format("woff2");
+}
+
+html { font-size: 100%; background: transparent; }
+.chapter { max-width: none; padding: 1em; }
+/* Each section is its own spine document, so no page break is needed here. */
+.chapter-header { margin: 1.5em 0 2.4em; }
+.chapter-header h1 { font-size: 2.2em; border-bottom-width: 5px; }
+
+/* The coral scene-break bar already lives on the <hr> itself (body.css); reaffirm it and
+   cancel any pseudo so it can never vanish on a reader that drops generated content. */
+.scene-break { width: 3em; height: .32em; margin: 1.9em 0; border: 0; background: var(--accent); }
+.scene-break::after, .scene-break::before { content: none; }
+
+/* Wrap long code lines instead of amputating them (no scrollbars on e-readers). */
+.prose pre { overflow: visible; white-space: pre-wrap; overflow-wrap: break-word; }
+
+/* Conservative cover for e-readers: no aspect-ratio / svh / gradient. The halftone disc
+   degrades to a solid coral disc with a blue ring — still unmistakably the mark. */
+.cover { text-align: left; padding: 10% 1em; }
+.sigil { position: relative; width: 5em; height: 5em; margin: 0 0 1.5em; border-radius: 50%; background: var(--accent); box-shadow: inset 0 0 0 .18em var(--ink); }
+.cover-label { display: inline-block; color: var(--accent); font: 700 .72em var(--sans); letter-spacing: .2em; text-transform: uppercase; }
+.cover-title { margin: .3em 0 0; font-family: var(--display); font-weight: 800; font-size: 2.8em; line-height: .9; text-transform: uppercase; text-shadow: .045em .045em 0 var(--accent-ghost); }
+.cover .subtitle { margin-top: .8em; color: var(--ink-soft); font-style: italic; }
+.cover .authors { margin-top: 1.6em; color: var(--ink); font: 700 .8em var(--mono); letter-spacing: .1em; text-transform: uppercase; }

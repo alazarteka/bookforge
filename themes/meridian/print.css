@@ -1,0 +1,61 @@
+/* Print layer — Vivliostyle paged media. Running heads and folios sit flush-outside in mono;
+   `first-except` keeps them off chapter openers without relying on per-chapter :first. */
+@page {
+  size: var(--book-page, A5);
+  margin: var(--book-margin, 20mm 18mm 22mm);
+  bleed: var(--book-bleed, 0mm);
+}
+/* Body chapters carry a flush-outside running head (title) and folio, both in Plex Mono. */
+@page chapter:left {
+  @top-left { content: string(chapter-title, first-except); color: var(--ink-soft); font: 7pt var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+  @bottom-left { content: counter(page); color: var(--ink-soft); font: 8pt var(--mono); }
+}
+@page chapter:right {
+  @top-right { content: string(chapter-title, first-except); color: var(--ink-soft); font: 7pt var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+  @bottom-right { content: counter(page); color: var(--ink-soft); font: 8pt var(--mono); }
+}
+/* The very first leaf of the book carries no furniture. */
+@page :first { @top-left { content: none; } @top-right { content: none; } @bottom-left { content: none; } @bottom-right { content: none; } }
+
+html { font-size: 10.5pt; line-height: 1.55; background: white; }
+body { background: white; }
+
+/* Real grayscale: remap tokens so vector text, rules, and ornaments print as deliberate gray
+   (blue's luminance darkens cleanly); only raster images get an actual grayscale filter. */
+html[data-color="grayscale"] { --accent: #2a2a2a; --ink: #111111; --ink-soft: #4a4a4a; --paper-deep: #ededed; --rule: rgba(0, 0, 0, .2); }
+html[data-color="grayscale"] img { filter: grayscale(1); }
+
+a { color: inherit; }
+
+.print-toc { break-after: page; }
+.print-toc h1 { font-size: 20pt; font-weight: 600; letter-spacing: -.01em; margin: 0 0 8mm; padding-bottom: 2mm; border-bottom: 1pt solid var(--accent); }
+.print-toc ol { list-style: none; margin: 0; padding: 0; }
+.print-toc li { padding: 2.2mm 0; border-bottom: .25pt solid var(--rule); }
+.print-toc a { display: grid; grid-template-columns: 9mm 1fr auto; gap: 3mm; align-items: baseline; text-decoration: none; color: inherit; font-size: 10.5pt; }
+.print-toc .toc-index { color: var(--accent); font: 9pt var(--mono); font-variant-numeric: tabular-nums; }
+.print-toc .toc-role { display: none; }
+.print-toc a::after { content: target-counter(attr(href), page); font: 9pt var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+
+.chapter { page: chapter; break-before: page; max-width: none; padding: 22mm 0 0; }
+/* Role-aware pages: front matter and part leaves carry no running head or folio; a part is a
+   centered half-title; perfect-bound books open body chapters recto. */
+.chapter.frontmatter, .chapter.backmatter, .chapter.part { page: quiet; }
+@page quiet { @top-left { content: none; } @top-right { content: none; } @bottom-left { content: none; } @bottom-right { content: none; } }
+.chapter.part { display: grid; align-content: center; min-height: 70vh; }
+.chapter.part .chapter-header { margin: 0; }
+html[data-binding="perfect"] .chapter.bodymatter, html[data-binding="perfect"] .chapter.part { break-before: right; }
+
+.chapter-header { margin: 0 0 12mm; padding-bottom: 4mm; }
+.chapter-header h1 { font-size: 24pt; string-set: chapter-title content(text); }
+.prose h2, .prose h3, .prose h4 { break-after: avoid; }
+.prose blockquote, .prose figure { break-inside: avoid; }
+/* Wrap long code lines instead of amputating them (no scrollbars on paper). */
+.prose pre { overflow: visible; white-space: pre-wrap; overflow-wrap: break-word; }
+/* A page-tall table/note can't satisfy break-inside: avoid — let it break, keep rows and the
+   header intact, and repeat the head after a page break (this is the theme where it matters). */
+.prose table { break-inside: auto; }
+.prose thead { display: table-header-group; }
+.prose tr, .prose li { break-inside: avoid; }
+.prose p { orphans: 2; widows: 2; }
+.footnotes { break-inside: auto; }
+.footnotes li { break-inside: avoid; }

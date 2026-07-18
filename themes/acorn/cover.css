@@ -1,0 +1,14 @@
+/* The print cover owns its page geometry (zero margins) so its frame doesn't depend on the
+   active profile's margins; the theme's own padding sets the round, warm frame. */
+@page cover { margin: 0; @top-center { content: none; } @bottom-center { content: none; } }
+.print-cover { page: cover; break-after: page; height: 100vh; box-sizing: border-box; padding: 20mm; display: grid; place-items: center; text-align: center; }
+.print-cover-inner { width: 84%; padding: 18mm 12mm; border: 2pt solid var(--accent); border-radius: 10mm; background: var(--paper-deep); }
+/* The acorn roundel belongs on the printed cover too — green nut, marigold cap and sun-disc.
+   Token-driven, so it maps to chunky grays under grayscale with no loss of shape. */
+.print-cover .sigil { position: relative; width: 30mm; height: 30mm; margin: 0 auto 10mm; border-radius: 50%; background: var(--accent-sun); }
+.print-cover .sigil::before { content: ""; position: absolute; width: 23mm; height: 23mm; left: 50%; top: 50%; transform: translate(-50%, -44%); border-radius: 50%; background: var(--accent); }
+.print-cover .sigil::after { content: ""; position: absolute; width: 17mm; height: 9mm; left: 50%; top: 1.8mm; transform: translateX(-50%); border-radius: 9mm 9mm 1.5mm 1.5mm; background: var(--accent-sun); }
+.print-cover-label { display: inline-block; font: 700 9pt/1.2 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
+.print-cover h1 { margin: .3em 0; font-family: var(--display); font-size: 40pt; font-weight: 700; line-height: 1.02; }
+.print-cover .subtitle { color: var(--ink-soft); font-size: 14pt; font-style: italic; }
+.print-cover .authors { margin-top: 10mm; font: 600 11pt/1.4 var(--display); color: var(--ink-soft); }

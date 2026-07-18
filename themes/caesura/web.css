@@ -1,0 +1,67 @@
+/* Web modes. Base :root (in tokens.css) is the default "sepia" bone paper.
+   Night is an aubergine dusk, not a terminal; light is a cooler bright sheet. */
+html[data-theme="night"] { --paper: #141315; --paper-deep: #1f1d20; --ink: #d9d4cb; --ink-soft: #948e83; --accent: #c48ea0; --rule: rgba(217, 212, 203, .14); color-scheme: dark; }
+html[data-theme="light"] { --paper: #fcfbf8; --paper-deep: #f0ede6; --ink: #22221f; --ink-soft: #66645e; --accent: #6f3f4f; --rule: rgba(43, 41, 38, .10); }
+
+/* Near-invisible chrome: the reader bar is transparent until you reach for it, then a
+   quiet paper surface fades in. Controls sit in ink-soft — present, never loud. */
+.reader-bar { position: sticky; z-index: 20; top: 0; display: flex; align-items: center; gap: 1rem; min-height: 3.25rem; padding: .5rem max(1rem, env(safe-area-inset-left)); background: transparent; border-bottom: 1px solid transparent; font-family: var(--serif); transition: background-color .35s ease, border-color .35s ease, backdrop-filter .35s ease; }
+.reader-bar:hover, .reader-bar:focus-within { background: color-mix(in srgb, var(--paper) 84%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom-color: var(--rule); }
+.reader-bar .brand { margin-right: auto; color: var(--ink-soft); font: 400 .72rem/1 var(--serif); letter-spacing: .28em; text-indent: .28em; text-decoration: none; text-transform: uppercase; white-space: nowrap; opacity: .6; transition: opacity .35s ease; }
+.reader-bar:hover .brand, .reader-bar:focus-within .brand { opacity: 1; }
+.reader-bar .brand span { color: var(--ink-soft); }
+.reader-bar .tools { display: flex; align-items: center; gap: .5rem; }
+.reader-bar .seg { display: inline-flex; align-items: stretch; border: 1px solid var(--rule); border-radius: 999px; }
+.reader-bar .seg > button + button { border-left: 1px solid var(--rule); }
+.reader-bar button, .reader-bar .pill { display: inline-flex; align-items: center; justify-content: center; min-width: 2.3rem; height: 2.15rem; padding: 0 .55rem; border: 0; border-radius: 999px; color: var(--ink-soft); background: transparent; font-family: var(--serif); line-height: 1; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color .15s ease, color .15s ease; }
+.reader-bar .pill { border: 1px solid var(--rule); }
+.reader-bar button:hover, .reader-bar .pill:hover { color: var(--ink); background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.reader-bar button:active, .reader-bar .pill:active { background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.reader-bar .seg .sizer.sm { font-size: .9rem; }
+.reader-bar .seg .sizer.lg { font-size: 1.25rem; }
+.reader-bar svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.reader-bar .width[aria-pressed="true"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, var(--rule)); }
+.reader-bar .swatch { min-width: 2rem; }
+.reader-bar .sw { width: 1.05rem; height: 1.05rem; border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 20%, transparent); }
+.reader-bar .sw-sepia { background: #f7f4ee; }
+.reader-bar .sw-light { background: #fcfbf8; }
+.reader-bar .sw-night { background: #141315; }
+.reader-bar .swatch[aria-pressed="true"] .sw { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3px var(--accent); }
+.reader-bar button:focus-visible, .reader-bar .pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (pointer: coarse) { .reader-bar button { height: 2.45rem; } }
+.reading-progress { position: fixed; z-index: 30; top: 0; left: 0; width: var(--progress, 0%); height: 1px; background: var(--accent); opacity: .5; }
+
+/* Cover: vast negative space. The mark is a single empty ring — the held breath. */
+.cover { min-height: 100svh; display: grid; place-items: center; padding: 6rem 1.5rem; text-align: center; }
+.cover-inner { width: min(40rem, 100%); display: flex; flex-direction: column; align-items: center; }
+.sigil { width: 3.5rem; height: 3.5rem; margin: 0 auto 3.5rem; border: 1px solid var(--accent); border-radius: 50%; opacity: .8; }
+.cover-label { color: var(--ink-soft); font: 400 .68rem/1 var(--serif); letter-spacing: .34em; text-indent: .34em; text-transform: uppercase; }
+.cover-title { margin: 1.6rem 0 0; font-family: var(--display); font-size: clamp(2.1rem, 6.5vw, 3.8rem); font-weight: 500; letter-spacing: .01em; line-height: 1.06; text-wrap: balance; }
+.cover .subtitle { margin: 1.5rem auto 0; max-width: 28rem; color: var(--ink-soft); font-size: 1.05rem; font-style: italic; }
+.cover .authors { margin: 5rem 0 0; color: var(--ink-soft); font: 400 .74rem/1.6 var(--serif); letter-spacing: .26em; text-indent: .26em; text-transform: uppercase; }
+
+/* TOC: a centered single column of titles. No numbers, no role tags — legal subtraction. */
+.toc { max-width: 34rem; margin: 0 auto; padding: 5rem 2rem 8rem; text-align: center; }
+.toc h2 { margin: 0 0 3rem; font-family: var(--display); font-weight: 500; font-size: 2.1rem; letter-spacing: .01em; }
+.toc ol { margin: 0; padding: 0; list-style: none; }
+.toc a { display: block; padding: 1.15rem .25rem; border-top: 1px solid var(--rule); color: var(--ink); text-decoration: none; transition: color .2s ease; }
+.toc li:last-child a { border-bottom: 1px solid var(--rule); }
+.toc a:hover { color: var(--accent); }
+.toc-index, .toc-role { display: none; }
+.toc-title { font-size: 1.1rem; }
+
+.chapter-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: var(--measure); margin: 0 auto; padding: 3rem 2rem 6rem; border-top: 1px solid var(--rule); }
+.chapter-nav a { color: var(--ink-soft); font-size: .82rem; font-style: italic; text-decoration: none; transition: color .2s ease; }
+.chapter-nav a:hover { color: var(--accent); }
+.chapter-nav .next { text-align: right; }
+
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+.continuous .cover, .landing .cover { min-height: calc(100svh - 3.25rem); }
+.continuous .toc { border-bottom: 1px solid var(--rule); }
+.continuous .chapter { border-top: 1px solid var(--rule); }
+
+@media (max-width: 600px) { html { font-size: 18px; } .chapter { padding: 4rem 1.25rem 5rem; } .reader-bar .brand { min-width: 0; overflow: hidden; text-overflow: ellipsis; } .reader-bar .brand span { display: none; } .reader-bar { gap: .6rem; } .reader-bar .tools { gap: .4rem; } .reader-bar .width { display: none; } }
+
+/* The ring holds a slow breath — off by default for reduced-motion. */
+@media (prefers-reduced-motion: no-preference) { .sigil { animation: breathe 11s ease-in-out infinite; } @keyframes breathe { 50% { transform: scale(1.05); opacity: 1; } } }

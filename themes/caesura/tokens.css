@@ -1,0 +1,46 @@
+/* Caesura — a quiet room for poetry and aphorism. Defined by subtraction:
+   no sans, no drop cap, no drawn scene break, near-invisible chrome.
+   Two bundled OFL faces travel with every format so the page reads the same
+   whether or not the reader has them installed:
+     EB Garamond (body + italic) — airy, larger measure than a prose theme;
+     Cormorant (display only)     — high-contrast, fragile, for title pages.
+   No monospace is bundled: a poetry book owes code no typeface, so --mono
+   falls back to the system stack (documented, deliberate). */
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("theme-assets/ebg-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "EB Garamond";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("theme-assets/ebg-italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Cormorant";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("theme-assets/cormorant-normal.woff2") format("woff2");
+}
+
+:root {
+  --paper: #f7f4ee;      /* unbleached bone */
+  --paper-deep: #ebe6dc; /* rarely seen */
+  --ink: #2b2926;        /* soft black, never harsh */
+  --ink-soft: #7d776d;   /* apparatus, folios, chrome */
+  --accent: #7d4a5a;     /* dried-rose madder; whispers, never shouts */
+  --rule: rgba(43, 41, 38, .12); /* fainter than a prose theme; baked (no color-mix) so hairlines survive older EPUB engines */
+  /* No sans in this theme: labels are set in the serif with letterspacing/small-caps,
+     so --sans intentionally resolves to the reading face. */
+  --serif: "EB Garamond", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "EB Garamond", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --display: "Cormorant", "EB Garamond", "Palatino Linotype", Palatino, Georgia, serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --measure: 34rem; /* short verse lines want a narrower column than prose */
+  --verse-indent: 1.4em; /* hanging indent for turned-over lines */
+}

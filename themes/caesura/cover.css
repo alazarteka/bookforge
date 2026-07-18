@@ -1,0 +1,11 @@
+/* Print cover owns its page geometry (zero margins) so the frame never depends on the
+   active profile's margins. Same quiet design as the web cover, at print scale: a single
+   empty ring, a display-face title, and a great deal of held air. No border, no folio. */
+@page cover { margin: 0; @top-center { content: none; } @bottom-center { content: none; } }
+.print-cover { page: cover; break-after: page; height: 100vh; box-sizing: border-box; padding: 26mm; display: grid; place-items: center; text-align: center; }
+.print-cover-inner { width: 78%; }
+.print-cover .sigil { width: 16mm; height: 16mm; margin: 0 auto 14mm; border: .75pt solid var(--accent); border-radius: 50%; }
+.print-cover-label { font: 8pt/1.3 var(--serif); letter-spacing: .3em; text-transform: uppercase; color: var(--ink-soft); }
+.print-cover h1 { margin: 6mm 0 0; font-family: var(--display); font-size: 36pt; font-weight: 500; letter-spacing: .01em; line-height: 1.02; }
+.print-cover .subtitle { margin-top: 5mm; color: var(--ink-soft); font-style: italic; font-size: 12pt; }
+.print-cover .authors { margin-top: 20mm; font: 8.5pt/1.5 var(--serif); letter-spacing: .24em; text-transform: uppercase; color: var(--ink-soft); }

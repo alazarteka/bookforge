@@ -1,0 +1,55 @@
+/* Shared core (web + EPUB + print). Kept to conservative CSS: no color-mix, no ::after-only
+   ornaments for critical structure — the scene break is drawn on the <hr> itself. Sans body:
+   Meridian's hierarchy is carried by weight, rules, and boxes, not size drama or ornament. */
+* { box-sizing: border-box; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+html { color: var(--ink); background: var(--paper); font-family: var(--sans); font-size: 17px; line-height: 1.6; }
+body { margin: 0; }
+a { color: var(--accent); text-decoration-thickness: .08em; text-underline-offset: .15em; }
+
+.chapter { max-width: var(--measure); margin: 0 auto; padding: 4.5rem 2rem 8rem; }
+/* Left-aligned opener under a full-measure accent hairline — a drawing border, not a title page. */
+.chapter-header { margin: 0 0 3.25rem; padding: 0 0 1.5rem; text-align: left; border-bottom: 1.5px solid var(--accent); }
+/* Kicker is a boxed mono tag ("1", "PART 2") — the registration-mark language in miniature. */
+.chapter-kicker { display: inline-block; margin: 0 0 1.15rem; padding: .32em .72em; color: var(--accent); border: 1px solid var(--accent); font: 600 .7rem/1 var(--mono); letter-spacing: .2em; text-transform: uppercase; font-variant-numeric: lining-nums; }
+.chapter-header h1 { margin: 0; font-size: clamp(2rem, 5.5vw, 2.6rem); font-weight: 600; letter-spacing: -.02em; line-height: 1.08; text-wrap: balance; }
+
+/* Manual prose: paragraphs separated by space, not first-line indent — no drop cap anywhere. */
+.prose p { margin: 0; }
+.prose p + p { margin-top: 1.05em; }
+.prose h2, .prose h3, .prose h4 { margin: 2.6em 0 .9em; line-height: 1.25; letter-spacing: -.01em; text-wrap: balance; }
+.prose h2 { font-size: 1.7rem; font-weight: 600; padding-bottom: .35em; border-bottom: 1px solid var(--rule); }
+.prose h3 { font-size: 1.35rem; font-weight: 600; }
+.prose h4 { font-size: 1.125rem; font-weight: 600; color: var(--ink-soft); }
+
+/* Pull-quote is the theme's one serif moment — indented behind a signal-blue rule. */
+.prose blockquote { margin: 2.2rem 0; padding: .3rem 0 .3rem 1.4rem; border-left: 2px solid var(--accent); color: var(--ink-soft); font-family: var(--serif); font-size: 1.12rem; font-style: italic; line-height: 1.5; }
+
+/* Scene break: three hairline dashes drawn on the <hr> itself, so it never depends on ::after. */
+.scene-break { width: 4.5rem; height: 0; margin: 3rem auto; border: 0; border-top: 1px dashed var(--accent); }
+
+.prose ul, .prose ol { padding-left: 1.4rem; }
+.prose li { margin: .4rem 0; padding-left: .3rem; }
+.prose li::marker { color: var(--ink-soft); }
+
+/* Code is a first-class citizen: a boxed panel and inline chips in the same mono voice. */
+.prose pre { overflow: auto; margin: 2rem 0; padding: 1rem 1.2rem; border: 1px solid var(--rule); border-radius: 2px; background: var(--paper-deep); font: .82rem/1.55 var(--mono); }
+.prose :not(pre) > code { padding: .1em .3em; border-radius: 2px; background: var(--paper-deep); border: 1px solid var(--rule); font-family: var(--mono); font-size: .82em; }
+
+.prose figure { margin: 2.75rem 0; }
+.prose img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.prose figcaption { margin-top: .75rem; color: var(--ink-soft); font: .9rem/1.5 var(--serif); text-align: left; }
+
+/* Tables are first-class here: an accent cap rule, mono uppercase heads, quiet body hairlines. */
+.prose table { width: 100%; margin: 2.5rem 0; border-collapse: collapse; font-size: .88rem; }
+.prose thead th { border-bottom: 2px solid var(--accent); }
+.prose th, .prose td { padding: .5rem .7rem; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+.prose th { font: 600 .68rem/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
+.prose td { font-variant-numeric: tabular-nums; }
+
+.footnote-ref { font-family: var(--sans); text-decoration: none; font-variant-numeric: lining-nums; }
+.footnotes { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--rule); color: var(--ink-soft); font-size: .84rem; }
+.footnote-back { margin-left: .4em; color: var(--accent); }
+.footnote-back .fn-back { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vertical-align: baseline; }
+
+::selection { color: var(--ink); background: rgba(15, 98, 214, .18); }

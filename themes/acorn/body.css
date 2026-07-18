@@ -1,0 +1,44 @@
+* { box-sizing: border-box; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+/* Big, friendly, generously led — Andika's wide apertures at a large base size, with a
+   touch of extra letter/word spacing to keep beginning readers' eyes from crowding. */
+html { color: var(--ink); background: var(--paper); font-family: var(--body); font-size: 19px; line-height: 1.75; letter-spacing: .01em; word-spacing: .05em; }
+body { margin: 0; }
+a { color: var(--accent); text-decoration-thickness: .09em; text-underline-offset: .16em; }
+.chapter { max-width: var(--measure); margin: 0 auto; padding: 4.5rem 1.75rem 7rem; }
+.chapter-header { margin: 0 0 3.25rem; text-align: center; }
+/* The kicker is a round marigold pill a child can spot — "Chapter 3" in chunky Baloo. */
+.chapter-kicker { display: inline-block; margin: 0; padding: .3em 1.1em; border-radius: 999px; background: var(--accent-sun); color: #2a2114; font: 600 .9rem/1.4 var(--display); letter-spacing: .04em; font-variant-numeric: lining-nums; }
+.chapter-header h1 { margin: 1.1rem 0 0; font-family: var(--display); font-size: clamp(2rem, 6vw, 2.9rem); font-weight: 600; letter-spacing: .005em; line-height: 1.12; text-wrap: balance; }
+.prose p { margin: 0; }
+.prose p + p { margin-top: 1.1em; }
+/* Round drop cap: chunky Baloo, leaf-green, only when a chapter opens on a paragraph so
+   it never lands mid-content — friendly rather than formal. */
+.prose > p:first-child::first-letter { float: left; margin: .02em .12em 0 0; color: var(--accent); font-family: var(--display); font-size: 3em; line-height: .82; font-weight: 700; }
+/* Core marks paragraphs opening on punctuation (a quote/dash) so the drop cap never enlarges the mark */
+.prose > p.no-drop:first-child::first-letter { float: none; margin: 0; color: inherit; font-family: inherit; font-size: inherit; line-height: inherit; font-weight: inherit; }
+.prose h2, .prose h3, .prose h4 { margin: 2em 0 .7em; font-family: var(--display); font-weight: 600; line-height: 1.22; text-wrap: balance; }
+.prose h2 { font-size: 1.6rem; color: var(--ink); }
+.prose h3 { font-size: 1.25rem; }
+.prose h4 { font-size: 1.05rem; }
+.prose blockquote { margin: 2rem 0; padding: .6rem 1.3rem; border-left: 5px solid var(--accent); border-radius: 0 1rem 1rem 0; background: #f6ecd4; color: var(--ink); font-style: italic; }
+/* Glyph-free scene break: three round leaf-green dots — soft, no symbol font needed. */
+.scene-break { width: 100%; height: auto; margin: 3rem auto; border: 0; text-align: center; }
+.scene-break::after { content: ""; display: inline-block; width: .55rem; height: .55rem; border-radius: 50%; background: var(--accent); box-shadow: -1.2rem 0 0 var(--accent), 1.2rem 0 0 var(--accent); }
+.prose ul, .prose ol { padding-left: 1.5rem; }
+.prose li { margin: .5rem 0; padding-left: .35rem; }
+.prose li::marker { color: var(--accent); }
+.prose pre { overflow: auto; margin: 1.8rem 0; padding: 1rem 1.2rem; border: 1px solid var(--rule); border-radius: .9rem; background: #f6ecd4; font: .82rem/1.6 var(--mono); }
+.prose :not(pre) > code { padding: .12em .4em; border-radius: 999px; background: var(--paper-deep); font-family: var(--mono); font-size: .84em; }
+.prose figure { margin: 2.5rem 0; }
+.prose img { display: block; max-width: 100%; height: auto; margin: 0 auto; border-radius: 1rem; }
+.prose figcaption { margin-top: .8rem; color: var(--ink-soft); font: .82rem/1.5 var(--body); text-align: center; }
+.prose table { width: 100%; margin: 2.2rem 0; border-collapse: collapse; font-size: .92rem; }
+.prose th, .prose td { padding: .6rem .7rem; border-bottom: 2px solid var(--rule); text-align: left; vertical-align: top; }
+.prose th { font-family: var(--display); font-weight: 600; }
+.footnote-ref { font-family: var(--display); font-weight: 600; text-decoration: none; }
+.footnotes { margin-top: 3.5rem; padding-top: 1.4rem; border-top: 2px solid var(--rule); color: var(--ink-soft); font-size: .9rem; }
+.footnotes li { margin: .6rem 0; }
+.footnote-back { margin-left: .4em; color: var(--accent); }
+.footnote-back .fn-back { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; vertical-align: baseline; }
+::selection { color: var(--ink); background: rgba(62, 124, 79, .24); }

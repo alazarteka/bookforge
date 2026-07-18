@@ -1,0 +1,50 @@
+/* Print: a silent interior. No running heads at all — a poetry book wants nothing at the
+   top of the page — only a centered folio at the foot, and none on the cover. */
+@page { size: var(--book-page, A5); margin: var(--book-margin, 22mm 20mm 24mm); bleed: var(--book-bleed, 0mm); @top-center { content: none; } @bottom-center { content: counter(page); color: var(--ink-soft); font: 8.5pt var(--serif); } }
+@page :first { @bottom-center { content: none; } }
+
+html { font-size: 11pt; line-height: 1.72; background: white; }
+body { background: white; }
+
+/* Real grayscale: remap tokens so vector text and the madder ornaments print as deliberate
+   gray (a root filter never reaches @page margin boxes and risks rasterizing type). The
+   madder accent goes to a mid-dark gray; images get the only actual filter. */
+html[data-color="grayscale"] { --accent: #3a3a3a; --ink: #161616; --ink-soft: #4c4c4c; --paper-deep: #ededed; --rule: rgba(0, 0, 0, .2); }
+html[data-color="grayscale"] img { filter: grayscale(1); }
+
+a { color: inherit; }
+
+/* Print TOC: centered titles, quiet, page numbers only — no leaders, no role tags. */
+.print-toc { break-after: page; text-align: center; }
+.print-toc h1 { margin: 0 0 10mm; font-family: var(--display); font-size: 23pt; font-weight: 500; }
+.print-toc ol { list-style: none; margin: 0; padding: 0; }
+.print-toc li { padding: 2.6mm 0; }
+.print-toc a { display: block; text-decoration: none; color: inherit; font-size: 11pt; }
+.print-toc .toc-index, .print-toc .toc-role { display: none; }
+.print-toc .toc-title { display: inline; }
+.print-toc a::after { content: " · " target-counter(attr(href), page); color: var(--ink-soft); font-size: 9.5pt; }
+
+.chapter { break-before: page; max-width: none; padding: 12mm 0 0; }
+.chapter-header { margin: 0 0 18mm; }
+.chapter-header h1 { font-family: var(--display); font-size: 27pt; font-weight: 500; letter-spacing: .01em; }
+.chapter-kicker { font-size: 10pt; letter-spacing: .3em; }
+
+/* Role-aware pages: front matter, end matter, and part leaves carry no folio; a part is a
+   centered half-title; perfect-bound books open body chapters and parts recto. */
+.chapter.frontmatter, .chapter.backmatter, .chapter.part { page: quiet; }
+@page quiet { @bottom-center { content: none; } }
+.chapter.part { display: grid; align-content: center; min-height: 68vh; }
+.chapter.part .chapter-header { margin: 0; }
+html[data-binding="perfect"] .chapter.bodymatter, html[data-binding="perfect"] .chapter.part { break-before: right; }
+
+/* Verse should not break mid-stanza, and stanzas are short — so keeping paragraphs whole
+   is correct here (unlike a prose theme). Headings stay with what follows. */
+.prose h2, .prose h3, .prose h4 { break-after: avoid; }
+.prose p { break-inside: avoid; orphans: 3; widows: 3; }
+.prose blockquote, .prose figure { break-inside: avoid; }
+.prose pre { overflow: visible; white-space: pre-wrap; overflow-wrap: break-word; break-inside: avoid; }
+.prose table { break-inside: auto; }
+.prose thead { display: table-header-group; }
+.prose tr, .prose li { break-inside: avoid; }
+.footnotes { break-inside: auto; }
+.footnotes li { break-inside: avoid; }

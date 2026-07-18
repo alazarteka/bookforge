@@ -1,0 +1,83 @@
+/* Web-only layer. Modern CSS is welcome here (night/light re-declare tokens; the reader bar
+   uses color-mix) — the conservative core is tokens.css + body.css. */
+
+html[data-theme="night"] { --paper: #16161a; --paper-deep: #232227; --ink: #dcd8cf; --ink-soft: #9b958a; --accent: #cf8a7d; --accent-2: #8ba3d4; --rule: rgba(220, 216, 207, .16); color-scheme: dark; }
+html[data-theme="light"] { --paper: #ffffff; --paper-deep: #f2f0ea; --ink: #1a1a18; --ink-soft: #5c584f; --accent: #6f2929; --accent-2: #2b3d63; --rule: rgba(26, 26, 24, .14); }
+
+/* Ink-blue is the second accent: it carries visited/secondary links in the running text. */
+.prose a:visited { color: var(--accent-2); }
+
+/* Reader bar — Classic's geometry, Lyceum's austere colours; academics want no drama in chrome. */
+.reader-bar { position: sticky; z-index: 20; top: 0; display: flex; align-items: center; gap: 1rem; min-height: 3.25rem; padding: .5rem max(1rem, env(safe-area-inset-left)); border-bottom: 1px solid var(--rule); background: color-mix(in srgb, var(--paper) 85%, transparent); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); font-family: var(--sans); }
+.reader-bar .brand { margin-right: auto; color: var(--ink); font: 500 .72rem/1 var(--sans); letter-spacing: .18em; text-decoration: none; text-transform: uppercase; white-space: nowrap; }
+.reader-bar .brand span { color: var(--ink-soft); }
+.reader-bar .tools { display: flex; align-items: center; gap: .4rem; }
+.reader-bar .seg { display: inline-flex; align-items: stretch; border: 1px solid var(--rule); border-radius: 999px; background: color-mix(in srgb, var(--paper-deep) 32%, transparent); }
+.reader-bar .seg > button + button { border-left: 1px solid var(--rule); }
+.reader-bar button, .reader-bar .pill { display: inline-flex; align-items: center; justify-content: center; min-width: 2.3rem; height: 2.15rem; padding: 0 .5rem; border: 0; border-radius: 999px; color: var(--ink); background: transparent; font-family: var(--sans); line-height: 1; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color .15s ease, color .15s ease, box-shadow .15s ease; }
+.reader-bar .pill { border: 1px solid var(--rule); background: color-mix(in srgb, var(--paper-deep) 32%, transparent); }
+.reader-bar button:hover, .reader-bar .pill:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.reader-bar button:active, .reader-bar .pill:active { background: color-mix(in srgb, var(--accent) 22%, transparent); }
+.reader-bar .seg .sizer.sm { font: 600 .82rem/1 var(--sans); }
+.reader-bar .seg .sizer.lg { font: 600 1.15rem/1 var(--sans); }
+.reader-bar svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.reader-bar .width[aria-pressed="true"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--rule)); background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.reader-bar .swatch { min-width: 2rem; }
+.reader-bar .sw { width: 1.05rem; height: 1.05rem; border-radius: 50%; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 22%, transparent); }
+.reader-bar .sw-sepia { background: #fbf9f4; }
+.reader-bar .sw-light { background: #ffffff; }
+.reader-bar .sw-night { background: #16161a; }
+.reader-bar .swatch[aria-pressed="true"] .sw { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3.5px var(--accent); }
+.reader-bar button:focus-visible, .reader-bar .pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (pointer: coarse) { .reader-bar button { height: 2.45rem; } }
+.reading-progress { position: fixed; z-index: 30; top: 0; left: 0; width: var(--progress, 0%); height: 2px; background: var(--accent); }
+
+/* Cover — Cambridge-austere: a double-rule pair frames the title block; the mark is a small
+   oxblood lozenge rule (a press ornament), not a sigil ring. */
+.cover { min-height: 100svh; display: grid; place-items: center; padding: 5rem 1.5rem; text-align: center; }
+.cover-inner { position: relative; width: min(42rem, 100%); padding: 3.4rem 0; border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }
+.cover-inner::before, .cover-inner::after { content: ""; position: absolute; left: 0; right: 0; height: 1px; background: var(--rule); }
+.cover-inner::before { top: 5px; }
+.cover-inner::after { bottom: 5px; }
+.sigil { width: 3.4rem; height: .55rem; margin: 0 auto 1.8rem; background: var(--accent); clip-path: polygon(0 50%, 8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%); }
+.cover-label { color: var(--accent); font: 500 .68rem/1 var(--sans); letter-spacing: .3em; text-transform: uppercase; }
+.cover-title { margin: 1.1rem 0 0; font-size: clamp(2.4rem, 7vw, 4.2rem); font-weight: 600; letter-spacing: -.02em; line-height: 1.02; text-wrap: balance; }
+.cover .subtitle { margin: 1.2rem auto 0; max-width: 30rem; color: var(--ink-soft); font-size: 1.1rem; font-style: italic; }
+.cover .authors { margin: 2.1rem 0 0; color: var(--ink-soft); font: 500 .74rem/1.5 var(--sans); letter-spacing: .18em; text-transform: uppercase; }
+
+/* Table of contents — dotted leaders, small-caps role tags. */
+.toc { max-width: 44rem; margin: 0 auto; padding: 4rem 2rem 7rem; }
+.toc h2 { margin: 0 0 2rem; font-weight: 600; font-size: 1.9rem; letter-spacing: -.01em; }
+.toc ol { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--rule); }
+.toc a { display: flex; align-items: baseline; gap: 0; padding: .95rem .25rem; border-bottom: 1px solid var(--rule); color: var(--ink); text-decoration: none; transition: background-color .15s ease; }
+.toc a:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.toc-index { flex: 0 0 2.6rem; color: var(--accent); font: 500 .9rem/1.6 var(--sans); font-variant-numeric: tabular-nums lining-nums; }
+.toc-title { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; font-size: 1.06rem; }
+/* Faux dotted leader: a long run of dots trailing the title, clipped at the column edge. */
+.toc-title::after { content: " ...................................................................................................."; color: var(--rule); letter-spacing: .12em; }
+.toc-role { flex: 0 0 auto; align-self: center; padding-left: .9rem; color: var(--ink-soft); font: 500 .62rem/1.6 var(--sans); letter-spacing: .14em; text-transform: uppercase; font-variant: small-caps; }
+
+.chapter-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: var(--measure); margin: 0 auto; padding: 2rem 2rem 5rem; border-top: 1px solid var(--rule); font-family: var(--sans); }
+.chapter-nav a { color: var(--ink); font-size: .8rem; text-decoration: none; }
+.chapter-nav a:hover { color: var(--accent); }
+.chapter-nav .next { text-align: right; }
+
+/* Visible keyboard focus on every link a reader can Tab to, not just the reader bar. */
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+
+.continuous .cover, .landing .cover { min-height: calc(100svh - 3.25rem); }
+.continuous .toc { border-bottom: 1px solid var(--rule); }
+.continuous .chapter { border-top: 1px solid var(--rule); }
+
+@media (max-width: 600px) {
+  html { font-size: 17px; }
+  .chapter { padding: 3.5rem 1.25rem 5rem; }
+  .reader-bar .brand { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .reader-bar .brand span { display: none; }
+  .reader-bar { gap: .6rem; }
+  .reader-bar .tools { gap: .35rem; flex: none; }
+  .reader-bar .width { display: none; }
+  .reader-bar button { min-width: 2.1rem; padding: 0 .35rem; }
+  .toc-title { overflow: visible; white-space: normal; }
+  .toc-title::after { content: none; }
+}

@@ -1,0 +1,78 @@
+/* Cross-format core (web + EPUB + print). Conservative on purpose: solid colours only,
+   no color-mix, no modern colour functions — CSS counters and ::before degrade harmlessly
+   to unnumbered headings where generated content is unsupported, which is the correct failure. */
+
+* { box-sizing: border-box; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+html { color: var(--ink); background: var(--paper); font-family: var(--serif); font-size: 17.5px; line-height: 1.68; }
+body { margin: 0; }
+a { color: var(--accent); text-decoration-thickness: .07em; text-underline-offset: .14em; }
+
+.chapter { max-width: var(--measure); margin: 0 auto; padding: 5rem 2rem 8rem; }
+
+/* Chapter opener — apparatus-forward and left-aligned, over an oxblood hairline. No drop cap. */
+.chapter-header { margin: 0 0 3.5rem; padding-bottom: 1.4rem; border-bottom: 1px solid var(--accent); }
+.chapter-kicker { display: block; margin: 0 0 1.1rem; color: var(--accent); font: 500 .74rem/1 var(--sans); letter-spacing: .26em; text-transform: uppercase; font-variant-numeric: lining-nums; }
+.chapter-header h1 { margin: 0; font-size: clamp(1.95rem, 5.5vw, 2.9rem); font-weight: 600; letter-spacing: -.012em; line-height: 1.1; text-wrap: balance; }
+
+/* The signature scholarly numbering, as pure theme policy — no HTML changes.
+   Section counter resets per chapter (each chapter is its own .prose). */
+.prose { counter-reset: sec; }
+.prose h2 { counter-increment: sec; counter-reset: subsec; }
+.prose h2::before { content: counter(sec) ". "; color: var(--accent); font-variant-numeric: lining-nums; }
+.prose h3 { counter-increment: subsec; }
+.prose h3::before { content: counter(sec) "." counter(subsec) "\2002"; color: var(--accent); font-variant-numeric: lining-nums; }
+
+.prose p { margin: 0; }
+.prose p + p { text-indent: 1.15em; }
+/* The versal opener: the first line of the first paragraph set in small caps — the classic
+   scholarly raised-line opening, and (unlike a ::first-letter drop cap) immune to the
+   opening-quotation-mark problem entirely. */
+.prose > p:first-child::first-line { font-variant-caps: small-caps; letter-spacing: .03em; }
+
+.prose h2, .prose h3, .prose h4 { margin: 2.6em 0 .9em; line-height: 1.25; text-wrap: balance; }
+.prose h2 { font-size: 1.55rem; font-weight: 600; letter-spacing: -.01em; }
+.prose h3 { font-size: 1.15rem; font-weight: 600; }
+.prose h4 { font: 600 .78rem/1.3 var(--sans); letter-spacing: .11em; text-transform: uppercase; color: var(--ink-soft); }
+
+.prose blockquote { margin: 1.9rem 0; padding: .1rem 0 .1rem 1.4rem; border-left: 2px solid var(--accent); color: var(--ink-soft); font-size: .95em; }
+.prose blockquote p + p { text-indent: 1.15em; }
+
+/* Scene break: a short centred hairline carrying a small knocked-out square at its middle,
+   like a press ornament. (EPUB draws the rule directly on the hr — see epub.css.) */
+.scene-break { position: relative; width: 34%; height: 0; margin: 2.9rem auto; border: 0; border-top: 1px solid var(--rule); }
+.scene-break::after { content: ""; position: absolute; top: 50%; left: 50%; width: .42rem; height: .42rem; transform: translate(-50%, -50%); background: var(--paper); border: 1px solid var(--accent); }
+
+.prose ul, .prose ol { padding-left: 1.4rem; }
+.prose li { margin: .4rem 0; padding-left: .3rem; }
+.prose li::marker { color: var(--ink-soft); }
+
+.prose pre { overflow: auto; margin: 1.9rem 0; padding: .9rem 1.1rem; border: 1px solid var(--rule); border-radius: .3rem; background: var(--paper-deep); font: .78rem/1.55 var(--mono); }
+.prose :not(pre) > code { padding: .07em .3em; border-radius: .2em; background: var(--paper-deep); font-family: var(--mono); font-size: .8em; }
+
+.prose figure { margin: 2.6rem 0; }
+.prose img { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.prose figcaption { margin-top: .7rem; color: var(--ink-soft); font: .72rem/1.5 var(--sans); text-align: center; }
+
+/* Tables set booktabs-style: heavy rules top and below, a hairline under the header, no verticals. */
+.prose table { width: 100%; margin: 2.4rem 0; border-collapse: collapse; font-size: .86rem; }
+.prose thead th { border-bottom: 1px solid var(--ink); }
+.prose table { border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); }
+.prose th, .prose td { padding: .5rem .65rem; text-align: left; vertical-align: top; }
+.prose th { font: 700 .68rem/1.4 var(--sans); letter-spacing: .05em; text-transform: uppercase; color: var(--ink-soft); }
+.prose tbody td { border-bottom: 1px solid var(--rule); }
+.prose tbody tr:last-child td { border-bottom: 0; }
+
+/* Footnote apparatus — the showcase. Superscript refs in oxblood tabular figures; the notes
+   block a quiet second register with hanging oxblood numbers. */
+.footnote-ref { color: var(--accent); text-decoration: none; }
+.footnote-ref sup { font-variant-numeric: tabular-nums lining-nums; font-weight: 500; padding: 0 .05em; }
+.footnotes { margin-top: 3.2rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); color: var(--ink-soft); font-size: .82rem; line-height: 1.58; }
+.footnotes ol { margin: 0; padding: 0; }
+.footnotes li { margin: 0 0 .55rem 1.7em; padding-left: .35em; }
+.footnotes li::marker { color: var(--accent); font-variant-numeric: tabular-nums lining-nums; }
+.footnotes p { margin: 0; }
+.footnote-back { margin-left: .35em; color: var(--accent); }
+.footnote-back .fn-back { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vertical-align: baseline; }
+
+::selection { color: var(--ink); background: rgba(124, 47, 47, .22); }

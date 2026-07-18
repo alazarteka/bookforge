@@ -1,0 +1,53 @@
+/* Acorn — the read-aloud shelf.
+   Andika (SIL's literacy face: single-story a/g, wide apertures, drawn for beginning
+   readers) carries the body; Baloo 2 (round, chunky, warm) carries every display voice.
+   One static woff2 per Andika style + one variable Baloo travel with the book, so web,
+   EPUB, and print render the same friendly type regardless of installed fonts.
+   Nothing modern (color-mix, etc.) lives in tokens/body — those layers are shared with
+   EPUB and must survive older e-reader engines; the fancy lives in web.css. */
+@font-face {
+  font-family: "Andika";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("theme-assets/andika-regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Andika";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("theme-assets/andika-bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Andika";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("theme-assets/andika-italic.woff2") format("woff2");
+}
+/* Baloo 2 as a variable face for web + print (smooth 400–800 display axis). EPUB adds
+   static instances of the two weights it uses, for engines with weak variable support. */
+@font-face {
+  font-family: "Baloo 2";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("theme-assets/baloo2-variable.woff2") format("woff2");
+}
+
+:root {
+  /* Warm-milk daylight — the default the reader bar labels "sepia". High body contrast
+     (children decoding text need it) with playful accents reserved for large shapes. */
+  --paper: #fdf8ec;
+  --paper-deep: #f6ecd4;
+  --ink: #33302a;        /* soft dark brown, never a harsh black */
+  --ink-soft: #83796a;
+  --accent: #3e7c4f;     /* leaf green — ornaments, links */
+  --accent-sun: #e0993e; /* marigold — active states, cover shapes */
+  --rule: rgba(51, 48, 42, .15); /* baked (no color-mix) so hairlines survive older EPUB engines */
+  --body: "Andika", "Comic Sans MS", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --display: "Baloo 2", "Andika", "Comic Sans MS", ui-rounded, system-ui, sans-serif;
+  --mono: "Andika", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --measure: 36rem;
+}

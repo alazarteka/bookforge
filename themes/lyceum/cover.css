@@ -1,0 +1,15 @@
+/* The print cover owns its page geometry (zero margins) so its frame never depends on the
+   active profile's margins. Same austere design as the web cover at print scale: a double-rule
+   pair frames the title block, with the oxblood lozenge press-ornament above it. */
+@page cover { margin: 0; @top-left { content: none } @top-right { content: none } @bottom-left { content: none } @bottom-right { content: none } @top-center { content: none } @bottom-center { content: none } }
+.print-cover { page: cover; break-after: page; height: 100vh; box-sizing: border-box; padding: 24mm; display: grid; place-items: center; text-align: center; }
+.print-cover-inner { position: relative; width: 84%; padding: 16mm 6mm; border-top: 1.4pt solid var(--ink); border-bottom: 1.4pt solid var(--ink); }
+.print-cover-inner::before, .print-cover-inner::after { content: ""; position: absolute; left: 0; right: 0; height: .35pt; background: var(--ink); }
+.print-cover-inner::before { top: 1.6mm; }
+.print-cover-inner::after { bottom: 1.6mm; }
+/* The oxblood lozenge, mirroring the web cover mark. */
+.print-cover .sigil { width: 24mm; height: 2mm; margin: 0 auto 9mm; background: var(--accent); clip-path: polygon(0 50%, 8% 0, 92% 0, 100% 50%, 92% 100%, 8% 100%); }
+.print-cover-label { font: 500 8pt/1.2 var(--sans); letter-spacing: .2em; text-transform: uppercase; color: var(--accent); }
+.print-cover h1 { margin: .35em 0; font-size: 34pt; font-weight: 600; line-height: 1; letter-spacing: -.01em; }
+.print-cover .subtitle { color: var(--ink-soft); font-style: italic; }
+.print-cover .authors { margin-top: 10mm; font: 500 8.5pt/1.4 var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); }

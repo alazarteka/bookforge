@@ -1,0 +1,63 @@
+/* Riso Club — a two-ink risograph zine. Body text is riso federal BLUE (not black);
+   one fluorescent coral is the single spot color, and it does ALL the shouting: shapes,
+   rules, and display only, never body-size text.
+
+   Fonts: Archivo carries the whole personality across its wght + wdth axes.
+     - "Archivo" is bundled as a wght+wdth VARIABLE face for web/print (fluid weight,
+       and a genuinely-condensed label width via the wdth axis).
+     - "Archivo Expanded" is a real STATIC Expanded-Black instance — a second family used
+       only for display (titles, kickers, TOC indices). Bundling it static guarantees the
+       Expanded look on Kindle (no variable-axis support) and Vivliostyle (where a wdth
+       dependency can flatten), instead of trusting the axis to survive.
+     - EPUB additionally pins static "Archivo" Regular + Bold (see epub.css) so body weight
+       never collapses on weak e-reader engines.
+     - "Space Mono" is the clerical, typewriter-wobble monospace voice.
+
+   tokens.css + body.css are the conservative cross-format core: no color-mix(), every
+   translucent value baked to rgba, so hairlines and fills survive older EPUB engines. */
+
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-weight: 100 900;
+  font-stretch: 62% 125%;
+  font-display: swap;
+  src: url("theme-assets/archivo-variable.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Archivo Expanded";
+  font-style: normal;
+  font-weight: 700 900;
+  font-display: swap;
+  src: url("theme-assets/archivo-expanded-black.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Space Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("theme-assets/space-mono-regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Space Mono";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("theme-assets/space-mono-bold.woff2") format("woff2");
+}
+
+:root {
+  --paper: #f5f1e4;      /* toothy cream stock */
+  --paper-deep: #eae3cf; /* fill panels */
+  --ink: #26317a;        /* riso federal blue — the body-text ink (~10.2:1 on cream) */
+  --ink-soft: #5d64a0;   /* secondary blue */
+  --accent: #ff5e5b;     /* fluorescent coral — shapes, rules, display; never small text */
+  --accent-ghost: rgba(255, 94, 91, .18); /* misregistration underlay */
+  --misreg: rgba(255, 94, 91, .5);         /* off-register second-pass text-shadow (degrades to none) */
+  --rule: rgba(38, 49, 122, .25);          /* blue hairline, baked (no color-mix, survives old EPUB) */
+  --panel: rgba(234, 227, 207, .55);       /* baked paper-deep-over-paper for code fills */
+  --sans: "Archivo", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --display: "Archivo Expanded", "Archivo", ui-sans-serif, -apple-system, BlinkMacSystemFont, sans-serif;
+  --mono: "Space Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --measure: 40rem;
+}

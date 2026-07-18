@@ -1,0 +1,21 @@
+schema: 1
+id: lyceum
+name: Lyceum
+version: 1.0.0
+styles:
+  tokens: tokens.css
+  body: body.css
+  web: web.css
+  epub: epub.css
+  print: print.css
+  cover: cover.css
+assets:
+  - fonts/stix-normal.woff2
+  - fonts/stix-italic.woff2
+  - fonts/stix-bold.woff2
+  - fonts/stix-italic-static.woff2
+  - fonts/alegreya-sans-400.woff2
+  - fonts/alegreya-sans-500.woff2
+  - fonts/alegreya-sans-700.woff2
+  - fonts/fira-mono-400.woff2
+  - fonts/fira-mono-500.woff2

@@ -1,0 +1,18 @@
+schema: 1
+id: riso-club
+name: Riso Club
+version: 1.0.0
+styles:
+  tokens: tokens.css
+  body: body.css
+  web: web.css
+  epub: epub.css
+  print: print.css
+  cover: cover.css
+assets:
+  - fonts/archivo-variable.woff2
+  - fonts/archivo-regular.woff2
+  - fonts/archivo-bold.woff2
+  - fonts/archivo-expanded-black.woff2
+  - fonts/space-mono-regular.woff2
+  - fonts/space-mono-bold.woff2

@@ -1,0 +1,30 @@
+/* Static Baloo instances for the two display weights Acorn uses, so titles/kickers stay
+   chunky on engines with weak variable-font support (Kindle, older Kobo/ADE) that would
+   otherwise flatten Baloo to its default instance. Web and print stay variable. */
+@font-face { font-family: "Baloo 2"; font-style: normal; font-weight: 600; font-display: swap; src: url("theme-assets/baloo2-semibold.woff2") format("woff2"); }
+@font-face { font-family: "Baloo 2"; font-style: normal; font-weight: 700; font-display: swap; src: url("theme-assets/baloo2-bold.woff2") format("woff2"); }
+
+html { font-size: 100%; background: transparent; }
+.chapter { max-width: none; padding: 1em; }
+/* Each chapter is its own spine document, so no page break is forced here (a redundant one
+   leaves a blank leaf on some readers). */
+.chapter-header { margin: 1.5em 0 2.5em; }
+.chapter-header h1 { font-size: 2em; }
+/* Wrap long code lines instead of clipping (e-readers have no scrollbars). */
+.prose pre { white-space: pre-wrap; overflow-wrap: break-word; }
+/* Draw the scene break on the hr itself (a single round dot) so it survives readers that
+   ignore ::after and box-shadow. Failure ladder: dot -> a visible rule. */
+.scene-break { width: .55em; height: .55em; margin: 2em auto; border: 0; border-radius: 50%; background: var(--accent); }
+.scene-break::after { content: none; }
+/* Keep page-bounded blocks whole; let unbounded ones break. */
+.prose blockquote, .prose figure { break-inside: avoid; }
+
+/* Conservative cover for e-readers (no svh / animation / z-index layering): a green nut
+   with a marigold cap. */
+.cover { text-align: center; padding: 12% 1em; }
+.sigil { position: relative; width: 5em; height: 5em; margin: 0 auto 2em; border-radius: 50%; background: var(--accent); }
+.sigil::after { content: ""; position: absolute; width: 3.5em; height: 1.9em; left: 50%; top: -.35em; transform: translateX(-50%); border-radius: 2em 2em .4em .4em; background: var(--accent-sun); }
+.cover-label { display: inline-block; color: var(--accent); font: 700 .8em var(--display); letter-spacing: .1em; text-transform: uppercase; }
+.cover-title { margin: .5em 0; font-family: var(--display); font-size: 2.6em; font-weight: 700; line-height: 1.04; }
+.cover .subtitle { color: var(--ink-soft); font-style: italic; }
+.cover .authors { margin-top: 1.4em; color: var(--ink-soft); font: 600 1em var(--display); }

@@ -1,0 +1,58 @@
+/* Meridian — the engineer's bench manual. One IBM Plex superfamily carries prose, labels,
+   and code in a single metal voice; a cool near-neutral field with one saturated signal blue
+   reserved for wayfinding. Bundled woff2 so web, EPUB, and print render identically regardless
+   of installed fonts; system stacks remain as graceful fallbacks. */
+
+/* Body / UI / display — the variable sans covers the 400–650 axis in one file. */
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400 650;
+  font-display: swap;
+  src: url("theme-assets/plex-sans.woff2") format("woff2");
+}
+/* Serif is the accent voice here (pull-quotes + captions only) — inverted from a literary theme. */
+@font-face {
+  font-family: "IBM Plex Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("theme-assets/plex-serif.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Serif";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("theme-assets/plex-serif-italic.woff2") format("woff2");
+}
+/* Mono is a first-class display voice (kickers, code) — static instances so weak e-readers
+   keep the 600 without needing variable-axis support. */
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("theme-assets/plex-mono.woff2") format("woff2");
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("theme-assets/plex-mono-600.woff2") format("woff2");
+}
+
+:root {
+  --paper: #fafbfc;      /* cool white, a breath of blue */
+  --paper-deep: #eef1f4; /* panel / code fill */
+  --ink: #171b20;        /* blue-black */
+  --ink-soft: #5b636d;   /* captions, folios */
+  --accent: #0f62d6;     /* signal blue — links, kicker, rules */
+  --accent-warm: #c8551b; /* rare second signal — active states only */
+  --rule: rgba(23, 27, 32, .14); /* baked (not color-mix) so hairlines survive older EPUB engines */
+  --sans: "IBM Plex Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --serif: "IBM Plex Serif", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --measure: 42rem;
+}

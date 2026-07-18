@@ -1,0 +1,43 @@
+/* Lyceum — a scholarly humanities-monograph theme.
+   Bundled faces so web, EPUB, and print render the same regardless of installed fonts.
+   STIX Two Text is the reading face (variable 400–700 roman + italic); Alegreya Sans carries
+   the apparatus and labels; Fira Mono sets code. System serif/sans/mono remain as graceful
+   fallbacks if a bundled face fails to load. Tokens.css and body.css are the conservative
+   cross-format core: no color-mix or modern colour functions live here, so EPUB hairlines and
+   fills survive older reader engines — the fancy stays in web.css. */
+
+/* STIX Two Text — variable reading face; web & print use the whole 400–700 axis. */
+@font-face {
+  font-family: "STIX Two Text";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("theme-assets/stix-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "STIX Two Text";
+  font-style: italic;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("theme-assets/stix-italic.woff2") format("woff2");
+}
+/* Apparatus/label sans (three static weights) and code mono travel with the book. */
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 400; font-display: swap; src: url("theme-assets/alegreya-sans-400.woff2") format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 500; font-display: swap; src: url("theme-assets/alegreya-sans-500.woff2") format("woff2"); }
+@font-face { font-family: "Alegreya Sans"; font-style: normal; font-weight: 700; font-display: swap; src: url("theme-assets/alegreya-sans-700.woff2") format("woff2"); }
+@font-face { font-family: "Fira Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("theme-assets/fira-mono-400.woff2") format("woff2"); }
+@font-face { font-family: "Fira Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url("theme-assets/fira-mono-500.woff2") format("woff2"); }
+
+:root {
+  --paper: #fbf9f4;       /* archival off-white */
+  --paper-deep: #efece3;  /* code fill, block panels */
+  --ink: #1e1d1b;         /* dense black */
+  --ink-soft: #615c52;    /* notes, captions, folios */
+  --accent: #7c2f2f;      /* oxblood — heading numbers, links, structural rules */
+  --accent-2: #31456e;    /* ink-blue — visited/secondary links */
+  --rule: rgba(30, 29, 27, .16); /* baked (never color-mix) so hairlines survive older EPUB engines; web night/light re-declare it */
+  --serif: "STIX Two Text", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: "Alegreya Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono: "Fira Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --measure: 40rem;
+}

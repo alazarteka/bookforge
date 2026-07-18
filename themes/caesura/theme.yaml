@@ -1,0 +1,15 @@
+schema: 1
+id: caesura
+name: Caesura
+version: 1.0.0
+styles:
+  tokens: tokens.css
+  body: body.css
+  web: web.css
+  epub: epub.css
+  print: print.css
+  cover: cover.css
+assets:
+  - fonts/ebg-normal.woff2
+  - fonts/ebg-italic.woff2
+  - fonts/cormorant-normal.woff2

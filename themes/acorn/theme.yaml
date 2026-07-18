@@ -1,0 +1,18 @@
+schema: 1
+id: acorn
+name: Acorn
+version: 1.0.0
+styles:
+  tokens: tokens.css
+  body: body.css
+  web: web.css
+  epub: epub.css
+  print: print.css
+  cover: cover.css
+assets:
+  - fonts/andika-regular.woff2
+  - fonts/andika-bold.woff2
+  - fonts/andika-italic.woff2
+  - fonts/baloo2-variable.woff2
+  - fonts/baloo2-semibold.woff2
+  - fonts/baloo2-bold.woff2

@@ -1,0 +1,31 @@
+/* EPUB layer — subtracts risk. Ships static STIX faces so bold and italic survive engines with
+   weak variable-font support; draws the scene break on the hr itself so it can't vanish where
+   ::after is ignored; wraps long code lines (no scrollbars on e-readers). Counters + ::before
+   heading numbers work on modern engines and degrade harmlessly to unnumbered headings. */
+
+/* Static instances for weak engines. Engines with real variable support keep using the
+   400–700 range faces in tokens.css; weaker ones match these exact weights instead. */
+@font-face { font-family: "STIX Two Text"; font-style: normal; font-weight: 700; font-display: swap; src: url("theme-assets/stix-bold.woff2") format("woff2"); }
+@font-face { font-family: "STIX Two Text"; font-style: italic; font-weight: 400; font-display: swap; src: url("theme-assets/stix-italic-static.woff2") format("woff2"); }
+
+html { font-size: 100%; background: transparent; }
+.chapter { max-width: none; padding: 1em; }
+.chapter-header { margin: 0 0 2.4em; padding-bottom: 1em; }
+.chapter-header h1 { font-size: 2.1em; }
+
+/* Wrap long code lines instead of clipping them. */
+.prose pre { white-space: pre-wrap; overflow-wrap: break-word; }
+
+/* Draw the scene break on the hr itself (a short oxblood rule) so it survives readers that
+   ignore generated content on hr; cancel the core's ::after ornament. */
+.scene-break { width: 6em; height: 1px; margin: 2.2em auto; border: 0; background: var(--accent); }
+.scene-break::after { content: none; }
+
+/* Conservative typographic cover (no svh / clip-path / animation). */
+.cover { text-align: center; padding: 12% 1em; }
+.cover-inner { border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); padding: 2em 0; }
+.sigil { width: 3em; height: 3px; margin: 0 auto 1.4em; background: var(--accent); }
+.cover-label { color: var(--accent); font: 500 .7em var(--sans); letter-spacing: .26em; text-transform: uppercase; }
+.cover-title { margin: .5em 0; font-size: 2.5em; font-weight: 600; line-height: 1.05; }
+.cover .subtitle { color: var(--ink-soft); font-style: italic; }
+.cover .authors { margin-top: 1.4em; color: var(--ink-soft); font: 500 .8em var(--sans); letter-spacing: .14em; text-transform: uppercase; }

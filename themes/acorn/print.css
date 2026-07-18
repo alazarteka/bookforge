@@ -1,0 +1,53 @@
+/* Home-printing A5 is Acorn's target: 12pt body, generous 1.7 leading, folios a child can
+   find set in chunky Baloo. Read-aloud pages must never strand a line, so orphans/widows
+   are held at 3 throughout. */
+@page { size: var(--book-page, A5); margin: var(--book-margin, 20mm 18mm 22mm); bleed: var(--book-bleed, 0mm); @bottom-center { content: counter(page); color: var(--ink-soft); font: 600 10pt var(--display); } }
+/* Running head carries the chapter title on continuation pages but not the opener (where
+   the <h1> sets the string) — `first-except` avoids named-page :first, which Vivliostyle
+   scopes to the whole document rather than each chapter. */
+@page chapter { @top-center { content: string(chapter-title, first-except); color: var(--ink-soft); font: 600 8pt var(--display); letter-spacing: .04em; } }
+@page :first { @top-center { content: none; } @bottom-center { content: none; } }
+html { font-size: 12pt; line-height: 1.7; background: white; }
+body { background: white; }
+/* Real grayscale: remap tokens so green/marigold print as two distinct chunky grays (no
+   root filter, which never reaches @page margin boxes and can rasterize type). Shapes stay
+   chunky, so nothing depends on hue; only raster images get an actual filter. */
+html[data-color="grayscale"] { --accent: #3f3f3f; --accent-sun: #cbcbcb; --ink: #141414; --ink-soft: #4a4a4a; --paper-deep: #ececec; --rule: rgba(0, 0, 0, .22); }
+html[data-color="grayscale"] img { filter: grayscale(1); }
+a { color: inherit; }
+/* Blockquote/code fills follow the token (so grayscale remaps them) instead of the baked
+   daylight value in body.css. */
+.prose blockquote, .prose pre { background: var(--paper-deep); }
+
+.print-toc { break-after: page; }
+.print-toc h1 { font-family: var(--display); font-size: 24pt; font-weight: 700; margin: 0 0 9mm; }
+.print-toc ol { list-style: none; margin: 0; padding: 0; }
+.print-toc li { padding: 3mm 0; border-bottom: 1pt solid var(--rule); }
+.print-toc a { display: grid; grid-template-columns: 9mm 1fr auto; gap: 3mm; align-items: baseline; text-decoration: none; color: inherit; font-size: 12pt; }
+.print-toc .toc-index { color: var(--accent); font: 700 11pt var(--display); font-variant-numeric: tabular-nums; }
+.print-toc .toc-title { font-family: var(--display); font-weight: 600; }
+.print-toc .toc-role { display: none; }
+.print-toc a::after { content: target-counter(attr(href), page); font: 600 10pt var(--display); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+
+.chapter { page: chapter; break-before: page; max-width: none; padding: 22mm 0 0; }
+/* Role-aware pages: front/back matter and part leaves carry no running head or folio; a
+   part opener is a centered half-title; perfect-bound books open body chapters recto. */
+.chapter.frontmatter, .chapter.backmatter, .chapter.part { page: quiet; }
+@page quiet { @top-center { content: none; } @bottom-center { content: none; } }
+.chapter.part { display: grid; align-content: center; min-height: 70vh; padding-top: 0; }
+.chapter.part .chapter-header { margin: 0; }
+html[data-binding="perfect"] .chapter.bodymatter, html[data-binding="perfect"] .chapter.part { break-before: right; }
+.chapter-header { margin: 0 0 14mm; }
+.chapter-header h1 { font-size: 26pt; string-set: chapter-title content(text); }
+.prose h2, .prose h3, .prose h4 { break-after: avoid; }
+.prose blockquote, .prose figure { break-inside: avoid; }
+/* Wrap long code lines instead of amputating them (no scrollbars on paper). */
+.prose pre { overflow: visible; white-space: pre-wrap; overflow-wrap: break-word; }
+/* A page-tall table/note can't satisfy break-inside: avoid — let it break, keep rows whole,
+   and repeat the header after a page break. */
+.prose table { break-inside: auto; }
+.prose thead { display: table-header-group; }
+.prose tr, .prose li { break-inside: avoid; }
+.prose p { orphans: 3; widows: 3; }
+.footnotes { break-inside: auto; }
+.footnotes li { break-inside: avoid; }

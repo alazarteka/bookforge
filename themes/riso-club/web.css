@@ -1,0 +1,99 @@
+/* Web-only layer: evergreen CSS is welcome here. Two reading papers plus a blue-black
+   night stock, a halftone-disc sigil, risograph grain, and the track-listing TOC. */
+
+/* :root (the default "sepia" slot) is the cream stock defined in tokens.css. */
+html[data-theme="light"] {
+  --paper: #fdfcf7; --paper-deep: #eee9db; --ink: #1f2a6e; --ink-soft: #565da0;
+  --accent: #ff504d; --accent-ghost: rgba(255, 80, 77, .16); --misreg: rgba(255, 80, 77, .5);
+  --rule: rgba(31, 42, 110, .22); --panel: rgba(238, 233, 219, .6);
+  --grain: rgba(38, 49, 122, .05);
+}
+html[data-theme="night"] {
+  --paper: #191b2e; --paper-deep: #242741; --ink: #e8e4d3; --ink-soft: #9aa0c8;
+  --accent: #ff6f6c; --accent-ghost: rgba(255, 111, 108, .2); --misreg: rgba(255, 111, 108, .5);
+  --rule: rgba(154, 160, 200, .28); --panel: rgba(36, 39, 65, .7);
+  --grain: rgba(232, 228, 211, .05);
+  color-scheme: dark;
+}
+:root { --grain: rgba(38, 49, 122, .06); }
+
+/* Riso paper grain: a faint dot screen painted UNDER the content, tokenised so night
+   gets its own tactility instead of a dead overlay. */
+body { background-image: radial-gradient(var(--grain) .5px, transparent .8px); background-size: 4px 4px; }
+
+/* Reader bar: solid paper, NO blur / translucency (a risograph has no alpha), a 2px blue
+   bottom rule, and square-cornered controls. */
+.reader-bar { position: sticky; z-index: 20; top: 0; display: flex; align-items: center; gap: 1rem; min-height: 3.25rem; padding: .5rem max(1rem, env(safe-area-inset-left)); border-bottom: 2px solid var(--ink); background: var(--paper); font-family: var(--sans); }
+.reader-bar .brand { margin-right: auto; color: var(--ink); font: 800 .74rem/1 var(--sans); font-stretch: 85%; letter-spacing: .14em; text-decoration: none; text-transform: uppercase; white-space: nowrap; }
+.reader-bar .brand span { color: var(--accent); }
+.reader-bar .tools { display: flex; align-items: center; gap: .45rem; }
+.reader-bar .seg { display: inline-flex; align-items: stretch; border: 1.5px solid var(--ink); background: var(--paper); }
+.reader-bar .seg > button + button { border-left: 1.5px solid var(--ink); }
+.reader-bar button, .reader-bar .pill { display: inline-flex; align-items: center; justify-content: center; min-width: 2.3rem; height: 2.15rem; padding: 0 .5rem; border: 0; border-radius: 0; color: var(--ink); background: transparent; font-family: var(--sans); line-height: 1; text-decoration: none; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color .12s linear, color .12s linear; }
+.reader-bar .pill { border: 1.5px solid var(--ink); background: var(--paper); }
+.reader-bar button:hover, .reader-bar .pill:hover { background: var(--accent); color: var(--paper); }
+.reader-bar button:active, .reader-bar .pill:active { background: var(--ink); color: var(--paper); }
+.reader-bar .seg .sizer.sm { font: 800 .82rem/1 var(--sans); }
+.reader-bar .seg .sizer.lg { font: 800 1.15rem/1 var(--sans); }
+.reader-bar svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.reader-bar .width[aria-pressed="true"] { color: var(--paper); background: var(--accent); border-color: var(--accent); }
+.reader-bar .swatch { min-width: 2rem; }
+.reader-bar .sw { width: 1.05rem; height: 1.05rem; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--ink); }
+.reader-bar .sw-sepia { background: #f5f1e4; }
+.reader-bar .sw-light { background: #fdfcf7; }
+.reader-bar .sw-night { background: #191b2e; }
+.reader-bar .swatch[aria-pressed="true"] .sw { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--accent); }
+.reader-bar button:focus-visible, .reader-bar .pill:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (pointer: coarse) { .reader-bar button { height: 2.45rem; } }
+
+.reading-progress { position: fixed; z-index: 30; top: 0; left: 0; width: var(--progress, 0%); height: 3px; background: var(--accent); }
+
+/* Cover: the boldest swing. Asymmetric, hard left, oversized Expanded title with a
+   fake off-register second pass. */
+.cover { min-height: 100svh; display: grid; align-content: center; justify-items: start; padding: 5rem clamp(1.5rem, 6vw, 5rem); }
+.cover-inner { width: min(54rem, 100%); text-align: left; }
+/* Sigil = halftone disc: the riso dot gain, drawn as a mark. */
+.sigil { position: relative; width: 8rem; aspect-ratio: 1; margin: 0 0 2.4rem; border-radius: 50%; background-color: var(--paper-deep); background-image: radial-gradient(var(--accent) 1.3px, transparent 1.6px); background-size: 7px 7px; box-shadow: inset 0 0 0 2.5px var(--ink); }
+.cover-label { display: inline-block; color: var(--accent); font: 800 .72rem/1 var(--sans); font-stretch: 82%; letter-spacing: .24em; text-transform: uppercase; }
+.cover-title { margin: 1rem 0 0; font-family: var(--display); font-weight: 800; font-size: clamp(3.5rem, 14vw, 9rem); letter-spacing: -.01em; line-height: .86; text-transform: uppercase; text-wrap: balance; text-shadow: .05em .05em 0 var(--accent-ghost); }
+.cover .subtitle { margin: 1.4rem 0 0; max-width: 34rem; color: var(--ink-soft); font-size: 1.15rem; font-style: italic; }
+.cover .authors { margin: 2.4rem 0 0; color: var(--ink); font: 700 .78rem/1.5 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+
+/* TOC as a track listing: oversized Expanded coral indices, uppercase titles, thick blue rules. */
+.toc { max-width: 46rem; margin: 0 auto; padding: 4rem 2rem 7rem; }
+.toc h2 { margin: 0 0 2rem; font-family: var(--display); font-weight: 800; font-size: 2.3rem; text-transform: uppercase; letter-spacing: -.01em; }
+.toc ol { margin: 0; padding: 0; list-style: none; border-top: 3px solid var(--ink); }
+.toc a { display: grid; grid-template-columns: 3.4rem 1fr auto; align-items: baseline; gap: 1.1rem; padding: 1.15rem .25rem; border-bottom: 2px solid var(--rule); color: var(--ink); text-decoration: none; transition: background-color .12s linear, color .12s linear; }
+.toc a:hover { background: var(--accent); color: var(--paper); }
+.toc a:hover .toc-index, .toc a:hover .toc-role { color: var(--paper); }
+.toc-index { color: var(--accent); font: 800 1.5rem/1.1 var(--display); font-variant-numeric: tabular-nums lining-nums; }
+.toc-title { font-size: 1.1rem; font-weight: 600; text-transform: uppercase; letter-spacing: .01em; }
+.toc-role { align-self: center; color: var(--ink-soft); font: 700 .62rem/1.6 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+
+.chapter-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; max-width: var(--measure); margin: 0 auto; padding: 2rem 2rem 5rem; border-top: 2px solid var(--ink); font: 700 .78rem/1.4 var(--mono); text-transform: uppercase; letter-spacing: .04em; }
+.chapter-nav a { color: var(--ink); text-decoration: none; }
+.chapter-nav a:hover { color: var(--accent); }
+.chapter-nav .next { text-align: right; }
+
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.continuous .cover, .landing .cover { min-height: calc(100svh - 3.25rem); }
+.continuous .toc { border-bottom: 2px solid var(--ink); }
+.continuous .chapter { border-top: 2px solid var(--ink); }
+
+@media (max-width: 600px) {
+  html { font-size: 16px; }
+  .chapter { padding: 3.5rem 1.25rem 5rem; }
+  .reader-bar .brand { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .reader-bar .brand span { display: none; }
+  .reader-bar { gap: .6rem; }
+  .reader-bar .tools { gap: .35rem; flex: none; }
+  .reader-bar .width { display: none; }
+  .reader-bar button { min-width: 2.1rem; padding: 0 .35rem; }
+  .toc a { grid-template-columns: 2.6rem 1fr; }
+  .toc-role { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sigil { animation: riso-spin 24s linear infinite; }
+  @keyframes riso-spin { to { background-position: 28px 0; } }
+}

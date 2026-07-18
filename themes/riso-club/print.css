@@ -1,0 +1,71 @@
+/* Print (Vivliostyle) layer. Bold oversized coral folios, a condensed uppercase running
+   head, role-aware pages, and a grayscale remap that reads like a one-ink risograph master
+   (blue -> near-black, coral -> mid-gray) with NO root filter.
+
+   Furniture lives on the BASE @page: this Vivliostyle build renders margin boxes only for
+   the default page, not for named pages. So body chapters (+ the TOC) use the default page
+   and get the running head + folio, while front/back matter and part leaves are pushed onto
+   a named `quiet` page whose (unrendered) margin boxes leave them bare — the role-aware
+   suppression falls out of the same behaviour. `first-except` keeps each chapter OPENER
+   bare (the running-head string is set by the opener's <h1>, so it resolves empty there and
+   to the title on continuation pages). */
+@page {
+  size: var(--book-page, A5);
+  margin: var(--book-margin, 20mm 18mm 22mm);
+  bleed: var(--book-bleed, 0mm);
+  @top-center { content: string(chapter-title, first-except); color: var(--ink-soft); font: 700 7pt var(--sans); font-stretch: 80%; letter-spacing: .14em; text-transform: uppercase; }
+  @bottom-center { content: counter(page); color: var(--accent); font: 800 12pt var(--display); font-variant-numeric: tabular-nums; }
+}
+/* The very first page of the document (the cover) carries no furniture. */
+@page :first { @top-center { content: none; } @bottom-center { content: none; } }
+
+html { font-size: 10.5pt; line-height: 1.62; background: white; }
+body { background: white; }
+
+/* One-ink master: remap tokens (a root filter never reaches @page margin boxes and can
+   rasterise vector type); only raster images get an actual grayscale filter. */
+html[data-color="grayscale"] {
+  --ink: #191919; --accent: #6e6e6e; --ink-soft: #3a3a3a; --paper-deep: #e6e6e6;
+  --rule: rgba(0, 0, 0, .28); --panel: #ececec; --misreg: rgba(0, 0, 0, .12); --accent-ghost: rgba(0, 0, 0, .1);
+}
+html[data-color="grayscale"] img { filter: grayscale(1); }
+
+a { color: inherit; text-decoration-color: var(--accent); }
+
+/* Print TOC as a track listing, mirroring the web TOC anatomy. */
+.print-toc { break-after: page; }
+.print-toc h1 { margin: 0 0 8mm; font-family: var(--display); font-weight: 800; font-size: 24pt; text-transform: uppercase; letter-spacing: -.01em; }
+.print-toc ol { list-style: none; margin: 0; padding: 0; border-top: 1.5pt solid var(--ink); }
+.print-toc li { border-bottom: .75pt solid var(--rule); }
+.print-toc a { display: grid; grid-template-columns: 12mm 1fr auto; gap: 4mm; align-items: baseline; padding: 2.6mm 0; text-decoration: none; color: var(--ink); }
+.print-toc .toc-index { color: var(--accent); font: 800 13pt var(--display); font-variant-numeric: tabular-nums; }
+.print-toc .toc-title { font-weight: 600; font-size: 11pt; text-transform: uppercase; letter-spacing: .01em; }
+.print-toc .toc-role { display: none; }
+.print-toc a::after { content: target-counter(attr(href), page); color: var(--ink-soft); font: 700 10pt var(--mono); font-variant-numeric: tabular-nums; }
+
+/* Body chapters use the DEFAULT page (so they get the running head + folio). */
+.chapter { break-before: page; max-width: none; padding: 20mm 0 0; }
+/* Role-aware pages: front/back matter and part leaves are pushed onto the named `quiet`
+   page, which renders no margin boxes here, so they carry no running head or folio; a part
+   opener is a centred half-title; perfect binding opens body chapters recto. */
+.chapter.frontmatter, .chapter.backmatter, .chapter.part { page: quiet; }
+@page quiet { @top-center { content: none; } @bottom-center { content: none; } }
+.chapter.part { display: grid; align-content: center; min-height: 70vh; }
+.chapter.part .chapter-header { margin: 0; }
+html[data-binding="perfect"] .chapter.bodymatter, html[data-binding="perfect"] .chapter.part { break-before: right; }
+
+.chapter-header { margin: 0 0 12mm; }
+.chapter-header h1 { font-size: 30pt; border-bottom-width: 5px; string-set: chapter-title content(text); }
+
+.prose h2, .prose h3, .prose h4 { break-after: avoid; }
+.prose blockquote, .prose figure { break-inside: avoid; }
+/* Wrap long code lines rather than amputating them (no scrollbars on paper). */
+.prose pre { overflow: visible; white-space: pre-wrap; overflow-wrap: break-word; }
+/* A page-tall table/note can't satisfy break-inside: avoid — let it break, keep rows and
+   the header intact, and repeat the head after a page break. */
+.prose table { break-inside: auto; }
+.prose thead { display: table-header-group; }
+.prose tr, .prose li { break-inside: avoid; }
+.prose p { orphans: 2; widows: 2; }
+.footnotes { break-inside: auto; }
+.footnotes li { break-inside: avoid; }
