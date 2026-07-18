@@ -1,0 +1,196 @@
+schema: 1
+id: pride-and-prejudice
+title: Pride and Prejudice
+language: en
+authors:
+  - name: Jane Austen
+theme: classic
+chapters:
+  - id: chapter-01
+    path: chapters/01-chapter-i.md
+    role: bodymatter
+  - id: chapter-02
+    path: chapters/02-chapter-ii.md
+    role: bodymatter
+  - id: chapter-03
+    path: chapters/03-chapter-iii.md
+    role: bodymatter
+  - id: chapter-04
+    path: chapters/04-chapter-iv.md
+    role: bodymatter
+  - id: chapter-05
+    path: chapters/05-chapter-v.md
+    role: bodymatter
+  - id: chapter-06
+    path: chapters/06-chapter-vi.md
+    role: bodymatter
+  - id: chapter-07
+    path: chapters/07-chapter-vii.md
+    role: bodymatter
+  - id: chapter-08
+    path: chapters/08-chapter-viii.md
+    role: bodymatter
+  - id: chapter-09
+    path: chapters/09-chapter-ix.md
+    role: bodymatter
+  - id: chapter-10
+    path: chapters/10-chapter-x.md
+    role: bodymatter
+  - id: chapter-11
+    path: chapters/11-chapter-xi.md
+    role: bodymatter
+  - id: chapter-12
+    path: chapters/12-chapter-xii.md
+    role: bodymatter
+  - id: chapter-13
+    path: chapters/13-chapter-xiii.md
+    role: bodymatter
+  - id: chapter-14
+    path: chapters/14-chapter-xiv.md
+    role: bodymatter
+  - id: chapter-15
+    path: chapters/15-chapter-xv.md
+    role: bodymatter
+  - id: chapter-16
+    path: chapters/16-chapter-xvi.md
+    role: bodymatter
+  - id: chapter-17
+    path: chapters/17-chapter-xvii.md
+    role: bodymatter
+  - id: chapter-18
+    path: chapters/18-chapter-xviii.md
+    role: bodymatter
+  - id: chapter-19
+    path: chapters/19-chapter-xix.md
+    role: bodymatter
+  - id: chapter-20
+    path: chapters/20-chapter-xx.md
+    role: bodymatter
+  - id: chapter-21
+    path: chapters/21-chapter-xxi.md
+    role: bodymatter
+  - id: chapter-22
+    path: chapters/22-chapter-xxii.md
+    role: bodymatter
+  - id: chapter-23
+    path: chapters/23-chapter-xxiii.md
+    role: bodymatter
+  - id: chapter-24
+    path: chapters/24-chapter-xxiv.md
+    role: bodymatter
+  - id: chapter-25
+    path: chapters/25-chapter-xxv.md
+    role: bodymatter
+  - id: chapter-26
+    path: chapters/26-chapter-xxvi.md
+    role: bodymatter
+  - id: chapter-27
+    path: chapters/27-chapter-xxvii.md
+    role: bodymatter
+  - id: chapter-28
+    path: chapters/28-chapter-xxviii.md
+    role: bodymatter
+  - id: chapter-29
+    path: chapters/29-chapter-xxix.md
+    role: bodymatter
+  - id: chapter-30
+    path: chapters/30-chapter-xxx.md
+    role: bodymatter
+  - id: chapter-31
+    path: chapters/31-chapter-xxxi.md
+    role: bodymatter
+  - id: chapter-32
+    path: chapters/32-chapter-xxxii.md
+    role: bodymatter
+  - id: chapter-33
+    path: chapters/33-chapter-xxxiii.md
+    role: bodymatter
+  - id: chapter-34
+    path: chapters/34-chapter-xxxiv.md
+    role: bodymatter
+  - id: chapter-35
+    path: chapters/35-chapter-xxxv.md
+    role: bodymatter
+  - id: chapter-36
+    path: chapters/36-chapter-xxxvi.md
+    role: bodymatter
+  - id: chapter-37
+    path: chapters/37-chapter-xxxvii.md
+    role: bodymatter
+  - id: chapter-38
+    path: chapters/38-chapter-xxxviii.md
+    role: bodymatter
+  - id: chapter-39
+    path: chapters/39-chapter-xxxix.md
+    role: bodymatter
+  - id: chapter-40
+    path: chapters/40-chapter-xl.md
+    role: bodymatter
+  - id: chapter-41
+    path: chapters/41-chapter-xli.md
+    role: bodymatter
+  - id: chapter-42
+    path: chapters/42-chapter-xlii.md
+    role: bodymatter
+  - id: chapter-43
+    path: chapters/43-chapter-xliii.md
+    role: bodymatter
+  - id: chapter-44
+    path: chapters/44-chapter-xliv.md
+    role: bodymatter
+  - id: chapter-45
+    path: chapters/45-chapter-xlv.md
+    role: bodymatter
+  - id: chapter-46
+    path: chapters/46-chapter-xlvi.md
+    role: bodymatter
+  - id: chapter-47
+    path: chapters/47-chapter-xlvii.md
+    role: bodymatter
+  - id: chapter-48
+    path: chapters/48-chapter-xlviii.md
+    role: bodymatter
+  - id: chapter-49
+    path: chapters/49-chapter-xlix.md
+    role: bodymatter
+  - id: chapter-50
+    path: chapters/50-chapter-l.md
+    role: bodymatter
+  - id: chapter-51
+    path: chapters/51-chapter-li.md
+    role: bodymatter
+  - id: chapter-52
+    path: chapters/52-chapter-lii.md
+    role: bodymatter
+  - id: chapter-53
+    path: chapters/53-chapter-liii.md
+    role: bodymatter
+  - id: chapter-54
+    path: chapters/54-chapter-liv.md
+    role: bodymatter
+  - id: chapter-55
+    path: chapters/55-chapter-lv.md
+    role: bodymatter
+  - id: chapter-56
+    path: chapters/56-chapter-lvi.md
+    role: bodymatter
+  - id: chapter-57
+    path: chapters/57-chapter-lvii.md
+    role: bodymatter
+  - id: chapter-58
+    path: chapters/58-chapter-lviii.md
+    role: bodymatter
+  - id: chapter-59
+    path: chapters/59-chapter-lix.md
+    role: bodymatter
+  - id: chapter-60
+    path: chapters/60-chapter-lx.md
+    role: bodymatter
+  - id: chapter-61
+    path: chapters/61-chapter-lxi.md
+    role: bodymatter
+outputs:
+  web: {}
+  epub: {}
+  pdf:
+    profile: screen-a5
