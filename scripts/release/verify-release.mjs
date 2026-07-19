@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import process from "node:process";
 import { mustExist, readPackage, releaseTag, repositoryRoot, requiredNodeVersion } from "./release-lib.mjs";
 
@@ -10,6 +12,11 @@ if (process.versions.node !== requiredNodeVersion) {
 }
 if (expectedTag && expectedTag !== releaseTag(packageJson.version)) {
   throw new Error(`Release tag ${expectedTag} does not match package version ${packageJson.version}`);
+}
+const source = await readFile(path.join(repositoryRoot, "src", "util.ts"), "utf8");
+const runtimeVersion = source.match(/export const BOOKFORGE_VERSION = "([^"]+)";/)?.[1];
+if (runtimeVersion !== packageJson.version) {
+  throw new Error(`Runtime version ${runtimeVersion ?? "missing"} does not match package version ${packageJson.version}`);
 }
 await mustExist(new URL("../../LICENSE", import.meta.url), "MIT license");
 await mustExist(new URL("../../bin/bookforge", import.meta.url), "release launcher");
