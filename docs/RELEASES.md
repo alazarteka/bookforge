@@ -3,7 +3,9 @@
 Bookforge is distributed as verified GitHub Release assets, not through npm. The
 `package.json` package remains private. Each release provides a lean archive for
 one supported host that includes Bookforge and its production JavaScript
-dependencies; it deliberately **does not include Node.js**.
+dependencies; it deliberately **does not include Node.js**. This guide is also
+included at `docs/RELEASES.md` in every release bundle, so `bookforge doctor`
+can refer installed users to local documentation.
 
 ## Supported release targets
 
@@ -65,16 +67,42 @@ Package names and tool versions vary between distributions. Use `bookforge
 doctor` to confirm the result instead of assuming that a package name provides
 the required baseline.
 
-## Install
+## Install from a public release
 
-Download the installer from a GitHub Release, inspect it if desired, then run
-it. Do not run an installer copied from an untrusted mirror.
+The following bootstrap is for a **public** GitHub repository and public
+release assets. Download the installer from the official release URL, inspect
+it if desired, then run it. Do not run an installer copied from an untrusted
+mirror.
 
 ```sh
 curl --fail --location --remote-name \
   https://github.com/alazarteka/bookforge/releases/latest/download/bookforge-install.sh
 bash bookforge-install.sh
 ```
+
+## Install from a private or restricted release
+
+The public `curl` URL above does not authenticate to GitHub. If the repository
+or its release assets are private, open the [Bookforge releases
+page](https://github.com/alazarteka/bookforge/releases) while signed in to an
+account with access, then manually download these assets from the same release
+into one directory:
+
+- `bookforge-install.sh`
+- `bookforge-release-manifest.json`
+- the archive for the host (`bookforge-<version>-darwin-arm64.tar.gz` or
+  `bookforge-<version>-linux-x64-gnu.tar.gz`)
+
+Run the downloaded installer against that directory:
+
+```sh
+bash ./bookforge-install.sh --assets-dir ./bookforge-release-assets
+```
+
+It verifies the selected archive against the release manifest without making a
+network request. Do not add a GitHub token to a command line or URL. A
+manually installed release cannot use `bookforge update`; download the next
+release's three assets and run its installer with `--assets-dir` again.
 
 The default managed layout is:
 
@@ -92,10 +120,12 @@ Add `~/.local/bin` to `PATH` if necessary, then verify the complete toolchain:
 bookforge doctor
 ```
 
-The installer accepts `--version vX.Y.Z` to select a particular release. It
-also accepts `--home` and `--bin-dir` for a non-default managed location.
-`BOOKFORGE_RELEASE_BASE_URL` can point to an approved GitHub fork in controlled
-environments; it must be an HTTPS `github.com/OWNER/REPOSITORY` URL.
+For public installation, the installer accepts `--version vX.Y.Z` to select a
+particular release. It also accepts `--home` and `--bin-dir` for a non-default
+managed location. `BOOKFORGE_RELEASE_BASE_URL` can point to an approved public
+GitHub fork in controlled environments; it must be an HTTPS
+`github.com/OWNER/REPOSITORY` URL. `--assets-dir` is the manual/private path
+described above and takes precedence over the network URL.
 
 ## Integrity and provenance
 

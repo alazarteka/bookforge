@@ -25,6 +25,7 @@ try {
   }).catch((error) => {
     if (error?.code !== "ENOENT") throw error;
   });
+  await access(path.join(temporary, root, "docs", "RELEASES.md"));
   await run(path.join(temporary, root, "bin", "bookforge"), ["--help"]);
   console.log(`Smoke-tested ${path.basename(archive)}`);
 } finally {

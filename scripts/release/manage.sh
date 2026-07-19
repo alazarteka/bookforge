@@ -21,6 +21,14 @@ process.stdout.write(value);
 NODE
 }
 
+manual_assets() {
+  node --input-type=module - "$STATE_FILE" <<'NODE'
+import { readFile } from "node:fs/promises";
+const state = JSON.parse(await readFile(process.argv[2], "utf8"));
+process.stdout.write(state.manualAssets === true ? "true" : "false");
+NODE
+}
+
 atomic_link() {
   local target=$1 link=$2 temporary="${2}.new"
   rm -f "$temporary"
@@ -34,6 +42,7 @@ case "${1:-}" in
   update)
     shift
     [ -f "$STATE_FILE" ] || fail "managed install state is missing: $STATE_FILE"
+    [ "$(manual_assets)" = "false" ] || fail "this release was installed from manually downloaded assets; download the new release assets and rerun its installer with --assets-dir"
     base_url=$(node_value baseUrl) || fail "managed install state is invalid"
     bin_dir=$(node_value binDir) || fail "managed install state is invalid"
     exec "$ROOT/installer/install.sh" --home "$HOME_DIR" --bin-dir "$bin_dir" --base-url "$base_url" "$@"

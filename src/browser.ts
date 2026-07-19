@@ -22,8 +22,8 @@ export function browserCandidates(platform = process.platform, environment: Node
 }
 
 export function browserSetupMessage(platform = process.platform): string {
-  if (platform === "win32") return "Windows is not a supported Bookforge runtime target. Use macOS or Linux; see docs/RELEASES.md for setup guidance.";
-  return "No supported browser was found. Set BOOKFORGE_BROWSER to a Chrome- or Chromium-based browser executable; see docs/RELEASES.md for setup guidance.";
+  if (platform === "win32") return "Windows is not a supported Bookforge runtime target. Use macOS or Linux; installed releases include docs/RELEASES.md for setup guidance.";
+  return "No supported browser was found. Set BOOKFORGE_BROWSER to a Chrome- or Chromium-based browser executable; installed releases include docs/RELEASES.md for setup guidance.";
 }
 
 export async function resolveBrowser(environment: NodeJS.ProcessEnv = process.env, platform = process.platform): Promise<BrowserResolution | undefined> {

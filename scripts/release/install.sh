@@ -108,6 +108,7 @@ atomic_link() {
 
 check_only=false
 version=""
+assets_dir=""
 base_url=${BOOKFORGE_RELEASE_BASE_URL:-$DEFAULT_BASE_URL}
 home_dir=${BOOKFORGE_HOME:-"$HOME/.local/share/bookforge"}
 bin_dir=${BOOKFORGE_BIN_DIR:-"$HOME/.local/bin"}
@@ -117,14 +118,16 @@ while [ "$#" -gt 0 ]; do
     --check) check_only=true ;;
     --version) shift; [ "$#" -gt 0 ] || fail "--version requires a value"; version=$(safe_version "$1") ;;
     --base-url) shift; [ "$#" -gt 0 ] || fail "--base-url requires a value"; base_url=$1 ;;
+    --assets-dir) shift; [ "$#" -gt 0 ] || fail "--assets-dir requires a value"; assets_dir=$1 ;;
     --home) shift; [ "$#" -gt 0 ] || fail "--home requires a value"; home_dir=$1 ;;
     --bin-dir) shift; [ "$#" -gt 0 ] || fail "--bin-dir requires a value"; bin_dir=$1 ;;
     --help|-h)
       cat <<'USAGE'
-Usage: install.sh [--version vX.Y.Z] [--check] [--base-url URL] [--home DIR] [--bin-dir DIR]
+Usage: install.sh [--version vX.Y.Z] [--check] [--base-url URL] [--assets-dir DIR] [--home DIR] [--bin-dir DIR]
 
 Downloads a verified Bookforge GitHub Release for this host. --check only reports
-the available version. The installer requires an existing exact Node.js 24.18.0.
+the available version. --assets-dir installs manually downloaded release assets.
+The installer requires an existing exact Node.js 24.18.0.
 USAGE
       exit 0
       ;;
@@ -134,7 +137,7 @@ USAGE
 done
 
 require_node
-safe_base_url "$base_url"
+[ -n "$assets_dir" ] || safe_base_url "$base_url"
 target=$(release_target)
 temporary=$(mktemp -d "${TMPDIR:-/tmp}/bookforge-install.XXXXXX")
 lock_dir="${home_dir}.install.lock"
@@ -142,10 +145,16 @@ cleanup() { rm -rf "$temporary"; rmdir "$lock_dir" 2>/dev/null || true; }
 trap cleanup EXIT HUP INT TERM
 mkdir "$lock_dir" 2>/dev/null || fail "another Bookforge install or update is already running"
 
-manifest_url="$base_url/releases/latest/download/bookforge-release-manifest.json"
-if [ -n "$version" ]; then manifest_url="$base_url/releases/download/v$version/bookforge-release-manifest.json"; fi
 manifest_file="$temporary/bookforge-release-manifest.json"
-download "$manifest_url" "$manifest_file"
+if [ -n "$assets_dir" ]; then
+  assets_dir=$(CDPATH= cd -- "$assets_dir" && pwd -P) || fail "cannot access asset directory: $assets_dir"
+  [ -f "$assets_dir/bookforge-release-manifest.json" ] || fail "asset directory has no bookforge-release-manifest.json"
+  cp "$assets_dir/bookforge-release-manifest.json" "$manifest_file"
+else
+  manifest_url="$base_url/releases/latest/download/bookforge-release-manifest.json"
+  if [ -n "$version" ]; then manifest_url="$base_url/releases/download/v$version/bookforge-release-manifest.json"; fi
+  download "$manifest_url" "$manifest_file"
+fi
 available_version=$(manifest_value "$manifest_file" version) || fail "release manifest is invalid"
 [ -z "$version" ] || [ "$available_version" = "$version" ] || fail "release manifest version does not match requested version"
 asset=$(manifest_value "$manifest_file" asset "$target") || fail "release does not contain a bundle for $target"
@@ -161,7 +170,12 @@ if "$check_only"; then
 fi
 
 archive="$temporary/$asset"
-download "$base_url/releases/download/v$available_version/$asset" "$archive"
+if [ -n "$assets_dir" ]; then
+  [ -f "$assets_dir/$asset" ] || fail "asset directory has no $asset"
+  cp "$assets_dir/$asset" "$archive"
+else
+  download "$base_url/releases/download/v$available_version/$asset" "$archive"
+fi
 actual_sha=$(sha256_file "$archive")
 [ "$actual_sha" = "$expected_sha" ] || fail "checksum mismatch for $asset"
 assert_archive_paths "$archive"
@@ -172,6 +186,7 @@ bundle="$(find "$temporary" -mindepth 1 -maxdepth 1 -type d -name "bookforge-${a
 [ -n "$bundle" ] || fail "release archive has no expected bundle directory"
 [ -x "$bundle/bin/bookforge" ] || fail "release bundle has no executable launcher"
 [ -f "$bundle/lib/cli.js" ] || fail "release bundle has no compiled CLI"
+[ -f "$bundle/docs/RELEASES.md" ] || fail "release bundle has no installed release guide"
 [ -f "$bundle/release-manifest.json" ] || fail "release bundle has no manifest"
 bundle_version=$(manifest_value "$bundle/release-manifest.json" version) || fail "bundle manifest is invalid"
 bundle_target=$(manifest_value "$bundle/release-manifest.json" target) || fail "bundle manifest is invalid"
@@ -187,7 +202,7 @@ previous=""
 atomic_link "$destination" "$home_dir/current"
 if [ -n "$previous" ] && [ "$previous" != "$destination" ]; then atomic_link "$previous" "$home_dir/previous"; fi
 
-BOOKFORGE_STATE_BASE_URL="$base_url" BOOKFORGE_STATE_BIN_DIR="$bin_dir" BOOKFORGE_STATE_TARGET="$target" BOOKFORGE_STATE_VERSION="$available_version" \
+BOOKFORGE_STATE_BASE_URL="$base_url" BOOKFORGE_STATE_BIN_DIR="$bin_dir" BOOKFORGE_STATE_TARGET="$target" BOOKFORGE_STATE_VERSION="$available_version" BOOKFORGE_STATE_MANUAL_ASSETS="$([ -n "$assets_dir" ] && printf true || printf false)" \
   node --input-type=module - "$home_dir/install-state.json" <<'NODE'
 import { writeFile } from "node:fs/promises";
 const file = process.argv[2];
@@ -197,6 +212,7 @@ const state = {
   binDir: process.env.BOOKFORGE_STATE_BIN_DIR,
   target: process.env.BOOKFORGE_STATE_TARGET,
   version: process.env.BOOKFORGE_STATE_VERSION,
+  manualAssets: process.env.BOOKFORGE_STATE_MANUAL_ASSETS === "true",
 };
 await writeFile(file, `${JSON.stringify(state)}\n`);
 NODE

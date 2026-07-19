@@ -47,9 +47,10 @@ The commands above use POSIX shell syntax. Release installation and update use
 systems are sufficient.
 
 `doctor` enforces the exact Node, Pandoc, EPUBCheck, and project-local
-Vivliostyle versions. It reports pnpm as an optional source-installation tool,
-and requires that the selected browser and `pdfinfo` run successfully, but does
-not lock their versions. A full PDF build also needs `pdftoppm`.
+Vivliostyle versions, and requires that the selected browser and `pdfinfo` run
+successfully. It does not require or report pnpm: pnpm is only needed to build
+from a source checkout. Browser and Poppler versions are not locked. A full PDF
+build also needs `pdftoppm`.
 
 ## macOS examples
 

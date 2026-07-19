@@ -1,7 +1,18 @@
 #!/usr/bin/env sh
 set -eu
 
-ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
+# The managed PATH entry is a file symlink to this launcher. Resolve it without
+# readlink -f, which is unavailable in macOS's BSD readlink.
+SOURCE=$0
+while [ -h "$SOURCE" ]; do
+  DIRECTORY=$(CDPATH= cd -P -- "$(dirname -- "$SOURCE")" && pwd)
+  LINK=$(readlink "$SOURCE") || exit 1
+  case "$LINK" in
+    /*) SOURCE=$LINK ;;
+    *) SOURCE=$DIRECTORY/$LINK ;;
+  esac
+done
+ROOT=$(CDPATH= cd -P -- "$(dirname -- "$SOURCE")/.." && pwd)
 EXPECTED_NODE="v24.18.0"
 
 if ! NODE_VERSION=$(node --version 2>/dev/null); then

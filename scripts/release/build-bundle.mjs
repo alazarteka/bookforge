@@ -43,8 +43,10 @@ try {
   await pruneReleaseOnlyArtifacts(deployed);
 
   await mkdir(path.join(deployed, "bin"), { recursive: true });
+  await mkdir(path.join(deployed, "docs"), { recursive: true });
   await mkdir(path.join(deployed, "installer"), { recursive: true });
   await cp(path.join(repositoryRoot, "bin", "bookforge"), path.join(deployed, "bin", "bookforge"));
+  await cp(path.join(repositoryRoot, "docs", "RELEASES.md"), path.join(deployed, "docs", "RELEASES.md"));
   await cp(path.join(repositoryRoot, "scripts", "release", "install.sh"), path.join(deployed, "installer", "install.sh"));
   await cp(path.join(repositoryRoot, "scripts", "release", "manage.sh"), path.join(deployed, "installer", "manage.sh"));
   await chmod(path.join(deployed, "bin", "bookforge"), 0o755);
