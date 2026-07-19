@@ -1,9 +1,10 @@
 import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { PrintProfile, Publication, PublicationTheme } from "./model.js";
-import { resolveBrowser } from "./browser.js";
+import { browserSetupMessage, resolveBrowser } from "./browser.js";
 import { roleLabels, sectionArticle, sectionKickers } from "./html.js";
 import { themeCss, writeThemeAssets } from "./theme-loader.js";
+import { projectToolExecutable } from "./tool-paths.js";
 import { escapeHtml, inlineText, run } from "./util.js";
 import { writeAssets } from "./assets.js";
 
@@ -23,9 +24,9 @@ export async function renderPdf(publication: Publication, theme: PublicationThem
   const inputFile = path.join(printDirectory, "index.html");
   await writeFile(inputFile, html);
   const browser = await resolveBrowser();
-  if (!browser) throw new Error("No supported browser was found. Install Chrome or Chromium, or set BOOKFORGE_BROWSER to its executable path.");
-  const vivliostyle = path.resolve(import.meta.dirname, "..", "node_modules", ".bin", "vivliostyle");
-  await access(vivliostyle).catch(() => { throw new Error(`Vivliostyle is not installed at ${vivliostyle}. Run the project installation step first.`); });
+  if (!browser) throw new Error(browserSetupMessage());
+  const vivliostyle = projectToolExecutable(path.resolve(import.meta.dirname, ".."), "vivliostyle");
+  await access(vivliostyle).catch(() => { throw new Error(`Vivliostyle executable is unavailable: ${vivliostyle}. Reinstall Bookforge or set BOOKFORGE_VIVLIOSTYLE to its executable path.`); });
   const args = ["build", inputFile, "--output", outputFile, "--size", profile.page, "--timeout", "120", "--log-level", "info"];
   args.push("--executable-browser", browser.executable);
   const result = await run(vivliostyle, args, { cwd: path.resolve(import.meta.dirname, ".."), env: { NO_UPDATE_NOTIFIER: "1" } });
