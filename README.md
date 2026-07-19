@@ -63,6 +63,35 @@ node lib/cli.js build ../my-book
 node lib/cli.js preview ../my-book
 ```
 
+### Import existing Markdown chapters
+
+To start a new project from an existing directory of Markdown files, Bookforge
+copies the `.md` files into a new project and writes their natural file order
+(for example, `2-intro.md` before `10-ending.md`) into `book.yaml`. The source
+directory is never changed. Nested directories are kept, symbolic links are
+ignored, and chapter IDs are derived deterministically from their paths.
+
+```sh
+bookforge init ../my-book --from-existing ../my-draft --author "Ada Lovelace"
+bookforge init ../my-book --from-existing ../my-draft --dry-run
+```
+
+Use `--id`, `--title`, `--language`, and one or more `--author` flags to set
+metadata up front. Without `--author`, the manifest deliberately says
+`Unknown author` so it cannot be mistaken for a real attribution; replace it
+before publishing.
+
+### Validate a manuscript before building
+
+`lint` validates only `book.yaml`, Markdown chapters, chapter links, and local
+image references. It does not require a previous `dist/` build, a theme, or
+output tools, and it reports every problem it can find in one run.
+
+```sh
+bookforge lint ../my-book
+# `preflight` is an alias for `lint`
+```
+
 A project contains `book.yaml`, an ordered chapter list, and local assets. A
 complete build produces:
 
@@ -86,6 +115,7 @@ node lib/cli.js preview [project] --theme riso-club
 node lib/cli.js themes
 node lib/cli.js themes show classic
 node lib/cli.js themes preview [project]
+node lib/cli.js lint [project]
 node lib/cli.js check [project]
 node lib/cli.js doctor
 pnpm test
