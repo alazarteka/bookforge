@@ -1,0 +1,129 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+  attestations: write
+  id-token: write
+
+jobs:
+  verify-tag:
+    name: verify release tag
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out the signed tag source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Set up the pinned Node runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+          package-manager-cache: false
+      - name: Enable the pinned pnpm release
+        run: |
+          corepack enable
+          corepack install --global pnpm@10.26.1
+      - name: Install locked dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Verify tag, private distribution, and release metadata
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: pnpm run release:verify
+
+  build:
+    name: build (${{ matrix.target }})
+    needs: verify-tag
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: darwin-arm64
+            runner: macos-14
+          - target: darwin-x64
+            runner: macos-13
+          - target: linux-x64-gnu
+            runner: ubuntu-24.04
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up the pinned Node runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+          package-manager-cache: false
+      - name: Enable the pinned pnpm release
+        run: |
+          corepack enable
+          corepack install --global pnpm@10.26.1
+      - name: Install locked dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Install supported-target prerequisites
+        run: bash scripts/release/install-prerequisites.sh ${{ matrix.target }}
+      - name: Fail closed on dependency advisories
+        run: pnpm run security:audit
+      - name: Run every output and profile check
+        run: |
+          pnpm run check
+          pnpm run profiles:verify
+      - name: Build a production-only release bundle
+        run: pnpm run release:bundle -- --target ${{ matrix.target }} --output dist/release
+      - name: Smoke-test the archive before publication
+        run: |
+          VERSION=$(node -p 'require("./package.json").version')
+          pnpm run release:smoke -- --archive dist/release/bookforge-$VERSION-${{ matrix.target }}.tar.gz
+      - name: Upload target release files
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: release-${{ matrix.target }}
+          if-no-files-found: error
+          retention-days: 7
+          path: dist/release/*
+
+  publish:
+    name: attest and publish GitHub Release
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Set up the pinned Node runtime
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+          package-manager-cache: false
+      - name: Enable the pinned pnpm release
+        run: |
+          corepack enable
+          corepack install --global pnpm@10.26.1
+      - name: Download target bundles
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: release-*
+          path: dist/release
+          merge-multiple: true
+      - name: Create aggregate manifest, checksums, and installer asset
+        run: |
+          cp scripts/release/install.sh dist/release/bookforge-install.sh
+          chmod 755 dist/release/bookforge-install.sh
+          pnpm run release:manifest -- --input dist/release --output dist/release
+      - name: Attest the published bundles
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: |
+            dist/release/*.tar.gz
+            dist/release/bookforge-install.sh
+      - name: Publish GitHub Release assets
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/release/*.tar.gz
+            dist/release/*.sha256
+            dist/release/*.manifest.json
+            dist/release/SHA256SUMS
+            dist/release/bookforge-install.sh
