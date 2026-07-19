@@ -7,7 +7,7 @@ interface ToolCheck { name: string; command: string; args: string[]; expected?: 
 export async function doctor(): Promise<boolean> {
   const root = path.resolve(import.meta.dirname, "..");
   const checks: ToolCheck[] = [
-    { name: "Node.js", command: "node", args: ["--version"], expected: /^v24\./, remedy: "Use /opt/homebrew/opt/node@24/bin first in PATH." },
+    { name: "Node.js", command: "node", args: ["--version"], expected: /^v24\.18\.0$/, remedy: "Install or select Node.js 24.18.0 before running Bookforge." },
     { name: "pnpm", command: "pnpm", args: ["--version"], expected: /^10\.26\.1$/, remedy: "Only needed to install or update Bookforge; activate Corepack when needed.", required: false },
     { name: "Pandoc", command: "pandoc", args: ["--version"], expected: /^pandoc 3\.7\.0\.2\b/, remedy: "Install Pandoc 3.7.0.2." },
     { name: "EPUBCheck", command: "epubcheck", args: ["--version"], expected: /^EPUBCheck v5\.3\.0\b/, remedy: "Run brew install epubcheck." },
