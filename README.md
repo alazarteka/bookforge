@@ -81,6 +81,11 @@ Useful source-checkout commands:
 
 ```sh
 node lib/cli.js build [project] --format web,epub,pdf
+node lib/cli.js build [project] --theme meridian
+node lib/cli.js preview [project] --theme riso-club
+node lib/cli.js themes
+node lib/cli.js themes show classic
+node lib/cli.js themes preview [project]
 node lib/cli.js check [project]
 node lib/cli.js doctor
 pnpm test
@@ -98,6 +103,13 @@ require Bookforge, Node, or a web framework at reading time.
 `theme: classic` selects the built-in design. Books may provide a complete
 project-local theme under `theme/` or `themes/<id>/`; Bookforge validates and
 packages its CSS and declared assets for web, EPUB, and PDF.
+
+Use `bookforge themes` to list the built-in collection and
+`bookforge themes show <id>` to inspect a theme's styles and assets. `--theme <id>` is a
+one-command build or preview override and never rewrites `book.yaml`. To
+compare all built-ins without touching `dist/`, run `bookforge themes preview
+[project]`; it creates an atomic static comparison set at
+`.bookforge-theme-previews/`.
 
 The web edition reads as separate chapter pages by default, or as one
 continuous scroll of the whole book:

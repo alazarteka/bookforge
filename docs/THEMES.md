@@ -9,6 +9,13 @@ inside an individual book project.
 Set `theme: <id>` in `book.yaml`. Each bundles its own OFL fonts and renders
 across web, EPUB, and print.
 
+Discover the bundled options without opening the source tree:
+
+```sh
+bookforge themes                 # id, name, and version for every built-in theme
+bookforge themes show meridian   # its style files and packaged assets
+```
+
 | id | Character |
 | --- | --- |
 | `classic` | Warm literary letterpress — sepia paper, Source Serif 4, copper accent, drop cap (default) |
@@ -25,6 +32,30 @@ Resolution order for `theme: my-theme` is:
 3. Bookforge's built-in `themes/my-theme/theme.yaml`
 
 Project themes therefore override built-ins without modifying Bookforge.
+
+## Trying themes without changing a book
+
+Use `--theme <id>` to override the configured theme for one build or live
+preview. The override is never written back to `book.yaml`; a normal command
+without `--theme` still uses the configured theme.
+
+```sh
+bookforge build . --format web --theme meridian
+bookforge preview . --theme riso-club
+```
+
+For a side-by-side decision, generate static web previews for every built-in
+theme in one pass:
+
+```sh
+bookforge themes preview .
+```
+
+This parses the manuscript once, writes an index plus one self-contained web
+edition per built-in theme to `.bookforge-theme-previews/`, and replaces that
+directory atomically only after all previews succeed. It does not change
+`book.yaml`, `.bookforge-preview/`, or `dist/`; open its `index.html` to
+compare the editions.
 
 ## Theme package
 

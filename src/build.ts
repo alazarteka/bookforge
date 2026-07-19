@@ -15,9 +15,9 @@ import { BOOKFORGE_VERSION, commandVersion, containedPath, run, sha256, sourceEp
 
 export type Format = "web" | "epub" | "pdf";
 
-export async function createPublication(projectRoot: string): Promise<{ publication: Publication; config: Awaited<ReturnType<typeof loadConfig>>; theme: Awaited<ReturnType<typeof loadTheme>>; sourceHash: string }> {
+export async function createPublication(projectRoot: string, themeOverride?: string): Promise<{ publication: Publication; config: Awaited<ReturnType<typeof loadConfig>>; theme: Awaited<ReturnType<typeof loadTheme>>; sourceHash: string }> {
   const config = await loadConfig(projectRoot);
-  const theme = await loadTheme(projectRoot, config.theme);
+  const theme = await loadTheme(projectRoot, themeOverride ?? config.theme);
   const hashes: string[] = [await readFile(path.join(projectRoot, "book.yaml"), "utf8")];
   const spine = [];
   for (const chapter of config.chapters) {
@@ -90,9 +90,9 @@ function headingTargets(section: Publication["spine"][number]): Map<string, stri
   return targets;
 }
 
-export async function buildProject(project: string, requested?: Format[]): Promise<string> {
+export async function buildProject(project: string, requested?: Format[], themeOverride?: string): Promise<string> {
   const projectRoot = path.resolve(project);
-  const { publication, config, theme, sourceHash } = await createPublication(projectRoot);
+  const { publication, config, theme, sourceHash } = await createPublication(projectRoot, themeOverride);
   const configured = Object.keys(config.outputs) as Format[];
   const formats = requested?.length ? requested : configured;
   const unsupported = formats.filter((format) => !["web", "epub", "pdf"].includes(format));

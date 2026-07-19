@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { buildProject } from "./build.js";
 import { loadPrintProfile } from "./profile-loader.js";
-import { loadTheme } from "./theme-loader.js";
+import { inspectBuiltInTheme, listBuiltInThemes, loadTheme } from "./theme-loader.js";
 
 const fixture = path.resolve(import.meta.dirname, "..", "tests", "fixtures", "synthetic");
 
@@ -17,6 +17,28 @@ test("loads built-in themes and print profiles", async () => {
   assert.equal(profile.page, "182mm,257mm");
   assert.equal(profile.binding, "perfect");
   assert.equal(profile.color, "grayscale");
+});
+
+test("lists and inspects only bundled themes", async () => {
+  const themes = await listBuiltInThemes();
+  assert.deepEqual(themes.map((theme) => theme.id), ["acorn", "caesura", "classic", "lyceum", "meridian", "riso-club"]);
+  const classic = await inspectBuiltInTheme("classic");
+  assert.equal(classic.name, "Classic");
+  assert.deepEqual(classic.styles, ["tokens.css", "body.css", "web.css", "epub.css", "print.css", "cover.css"]);
+  assert.ok(classic.assets.includes("fonts/source-serif-4-variable.woff2"));
+});
+
+test("build theme overrides do not rewrite the project configuration", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-theme-override-"));
+  try {
+    await cp(fixture, root, { recursive: true });
+    const book = await readFile(path.join(root, "book.yaml"), "utf8");
+    await buildProject(root, ["web"], "meridian");
+    assert.equal(await readFile(path.join(root, "book.yaml"), "utf8"), book);
+    assert.match(await readFile(path.join(root, "dist", "web", "reader.css"), "utf8"), /IBM Plex/);
+    const manifest = JSON.parse(await readFile(path.join(root, "dist", "build-manifest.json"), "utf8"));
+    assert.equal(manifest.theme.id, "meridian");
+  } finally { await rm(root, { recursive: true, force: true }); }
 });
 
 test("builds a project-local theme and packages its declared assets", async () => {

@@ -1,4 +1,4 @@
-import { copyFile, mkdir, readFile, stat } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import YAML from "yaml";
 import { z } from "zod";
@@ -22,17 +22,74 @@ const mediaTypes: Record<string, string> = {
   ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif",
 };
 
+export interface BuiltInThemeInfo {
+  id: string;
+  name: string;
+  version: string;
+  styles: string[];
+  assets: string[];
+}
+
+function bundledThemesDirectory(): string {
+  return path.resolve(import.meta.dirname, "..", "themes");
+}
+
+export async function listBuiltInThemes(): Promise<BuiltInThemeInfo[]> {
+  const bundledThemes = bundledThemesDirectory();
+  const entries = await readdir(bundledThemes, { withFileTypes: true });
+  const themes = await Promise.all(entries.filter((entry) => entry.isDirectory()).map(async (entry) => {
+    const manifestFile = containedPath(bundledThemes, path.join(entry.name, "theme.yaml"));
+    if (!(await stat(manifestFile).catch(() => undefined))?.isFile()) return undefined;
+    const manifest = themeManifestSchema.parse(YAML.parse(await readFile(manifestFile, "utf8"), { strict: true, uniqueKeys: true }));
+    if (manifest.id !== entry.name) throw new Error(`Built-in theme directory "${entry.name}" declares "${manifest.id}"`);
+    return {
+      id: manifest.id,
+      name: manifest.name,
+      version: manifest.version,
+      styles: Object.values(manifest.styles),
+      assets: manifest.assets,
+    };
+  }));
+  return themes.filter((theme): theme is BuiltInThemeInfo => theme !== undefined).sort((a, b) => a.id.localeCompare(b.id));
+}
+
+export async function inspectBuiltInTheme(id: string): Promise<BuiltInThemeInfo> {
+  const theme = await loadBuiltInTheme(id);
+  const manifest = themeManifestSchema.parse(YAML.parse(await readFile(path.join(theme.root, "theme.yaml"), "utf8"), { strict: true, uniqueKeys: true }));
+  return {
+    id: theme.id,
+    name: theme.name,
+    version: theme.version,
+    styles: Object.values(manifest.styles),
+    assets: manifest.assets,
+  };
+}
+
+export async function loadBuiltInTheme(id: string): Promise<PublicationTheme> {
+  const bundledThemes = bundledThemesDirectory();
+  return loadThemeCandidates(id, [{ root: containedPath(bundledThemes, id), source: "built-in" }], bundledThemes);
+}
+
 export async function loadTheme(projectRoot: string, id: string): Promise<PublicationTheme> {
-  const bundledThemes = path.resolve(import.meta.dirname, "..", "themes");
+  const bundledThemes = bundledThemesDirectory();
   const candidates: Array<{ root: string; source: "project" | "built-in" }> = [
     { root: path.join(projectRoot, "theme"), source: "project" },
     { root: path.join(projectRoot, "themes", id), source: "project" },
     { root: containedPath(bundledThemes, id), source: "built-in" },
   ];
+  return loadThemeCandidates(id, candidates, bundledThemes, projectRoot);
+}
+
+async function loadThemeCandidates(
+  id: string,
+  candidates: Array<{ root: string; source: "project" | "built-in" }>,
+  bundledThemes: string,
+  projectRoot?: string,
+): Promise<PublicationTheme> {
   for (const candidate of candidates) {
-    const manifestFile = candidate.source === "project"
-      ? containedPath(projectRoot, path.relative(projectRoot, path.join(candidate.root, "theme.yaml")))
-      : containedPath(bundledThemes, path.join(id, "theme.yaml"));
+    const container = candidate.source === "project" ? projectRoot : bundledThemes;
+    if (!container) throw new Error("Theme resolution requires a project root");
+    const manifestFile = containedPath(container, path.relative(container, path.join(candidate.root, "theme.yaml")));
     if (!(await stat(manifestFile).catch(() => undefined))?.isFile()) continue;
     const rawManifest = await readFile(manifestFile, "utf8");
     const manifest = themeManifestSchema.parse(YAML.parse(rawManifest, { strict: true, uniqueKeys: true }));
