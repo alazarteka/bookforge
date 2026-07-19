@@ -433,7 +433,7 @@ Tests include:
 - Repeating an EPUB build with identical inputs, `SOURCE_DATE_EPOCH`, and the
   same toolchain (pinned Node/Pandoc and the same installed `sharp`/libvips
   build) on the same platform yields identical bytes.
-- `bookforge doctor` accurately describes this machine's tool state.
+- `bookforge doctor` accurately describes the supported host's tool state.
 - No build reads outside the project or accesses the network.
 
 ## 14. Explicit non-goals

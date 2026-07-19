@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import process from "node:process";
 import {
+  assertTargetMatchesHost,
   assertOnlyOptions,
   mustExist,
   optionValue,
@@ -27,6 +28,7 @@ if (!Object.hasOwn(releaseTargets, target)) throw new Error(`Unknown release tar
 if (process.versions.node !== requiredNodeVersion) {
   throw new Error(`Release bundles require Node.js ${requiredNodeVersion}; found ${process.versions.node}`);
 }
+assertTargetMatchesHost(target);
 
 const packageJson = await readPackage();
 const version = packageJson.version;

@@ -19,22 +19,43 @@ Node.js 24.18.0 plus the publishing prerequisites first, then use the verified
 GitHub Release installer. See [release installation and updates](docs/RELEASES.md)
 for prerequisites, checksums/provenance, managed updates, and rollback.
 
-## Requirements
+## Build from source
 
-This repository is pinned to Node.js 24.18.0 and pnpm 10.26.1. It also expects
-Pandoc 3.7.0.2, EPUBCheck 5.3.0, Poppler, Chrome, and the project-local
-Vivliostyle 11.1.0 package.
+Source development is supported on the same macOS targets and on x86_64 Linux
+with glibc. Linux release builds and checks run on Ubuntu 24.04; other glibc
+distributions, especially ones with older glibc, are not guaranteed. The
+commands below use POSIX shell syntax and work in the standard shells on those
+platforms.
 
-On this Mac, use the keg-only Node 24 without altering the global Node link:
+Install Node.js **24.18.0 exactly** and make `node` available on `PATH`. Then
+activate the pinned pnpm release with Corepack and install from the lockfile:
 
 ```sh
-export PATH="/opt/homebrew/opt/node@24/bin:/opt/homebrew/bin:/usr/bin:/bin"
+node --version                 # v24.18.0
+corepack enable
+corepack install --global pnpm@10.26.1
 pnpm install --frozen-lockfile
 pnpm run build
 node lib/cli.js doctor
 ```
 
+Building every output also requires Pandoc 3.7.0.2, EPUBCheck 5.3.0 with Java,
+Poppler, and Google Chrome, Chromium, or Microsoft Edge. The project-local
+Vivliostyle 11.1.0 dependency is installed by pnpm. See [supported target
+setup](docs/MACHINE_SETUP.md) for platform-specific package examples and
+verification notes.
+
 ## Start a book
+
+### Installed release
+
+```sh
+bookforge init ../my-book
+bookforge build ../my-book
+bookforge preview ../my-book
+```
+
+### Source checkout
 
 ```sh
 node lib/cli.js init ../my-book
@@ -56,7 +77,7 @@ dist/
   build-manifest.json
 ```
 
-Useful commands:
+Useful source-checkout commands:
 
 ```sh
 node lib/cli.js build [project] --format web,epub,pdf
@@ -106,6 +127,6 @@ applicable build manifest.
 - [Theme authoring](docs/THEMES.md)
 - [Print profiles](docs/PRINT_PROFILES.md)
 - [Dependency security](docs/SECURITY.md)
-- [Machine setup](docs/MACHINE_SETUP.md)
+- [Supported target setup](docs/MACHINE_SETUP.md)
 - [Release installation and compatibility](docs/RELEASES.md)
 - [Architecture decisions](docs/DECISIONS.md)

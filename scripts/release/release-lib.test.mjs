@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { isSafeArchivePath, normalizeVersion, releaseAssetName, releaseTargets, targetForHost } from "./release-lib.mjs";
+import { assertTargetMatchesHost, isSafeArchivePath, normalizeVersion, releaseAssetName, releaseTargets, targetForHost } from "./release-lib.mjs";
 
 function command(executable, args) {
   return new Promise((resolve, reject) => {
@@ -26,6 +26,18 @@ test("maps only supported release hosts", () => {
   assert.equal(targetForHost("darwin", "x64"), "darwin-x64");
   assert.equal(targetForHost("linux", "x64"), "linux-x64-gnu");
   assert.throws(() => targetForHost("linux", "arm64"), /Unsupported platform/);
+});
+
+test("rejects a bundle target that does not match its native host", () => {
+  assert.equal(assertTargetMatchesHost("darwin-arm64", { platform: "darwin", arch: "arm64" }), "darwin-arm64");
+  assert.throws(
+    () => assertTargetMatchesHost("darwin-x64", { platform: "darwin", arch: "arm64" }),
+    /does not match this host/,
+  );
+  assert.throws(
+    () => assertTargetMatchesHost("linux-x64-gnu", { platform: "linux", arch: "x64", glibc: false }),
+    /requires glibc/,
+  );
 });
 
 test("rejects traversal in release archive paths", () => {

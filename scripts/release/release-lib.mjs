@@ -8,7 +8,7 @@ export const requiredNodeVersion = "24.18.0";
 
 export const releaseTargets = Object.freeze({
   "darwin-arm64": { os: "darwin", arch: "arm64", runner: "macos-14" },
-  "darwin-x64": { os: "darwin", arch: "x64", runner: "macos-13" },
+  "darwin-x64": { os: "darwin", arch: "x64", runner: "macos-15-intel" },
   "linux-x64-gnu": { os: "linux", arch: "x64", libc: "glibc", runner: "ubuntu-24.04" },
 });
 
@@ -21,6 +21,27 @@ export function targetForHost(platform, arch, glibc = true) {
   if (platform === "darwin" && arch === "x64") return "darwin-x64";
   if (platform === "linux" && arch === "x64" && glibc) return "linux-x64-gnu";
   throw new Error(`Unsupported platform: ${platform}-${arch}${platform === "linux" ? " (requires glibc)" : ""}`);
+}
+
+export function isGlibcRuntime(report = process.report) {
+  try {
+    const version = report?.getReport?.().header?.glibcVersionRuntime;
+    return typeof version === "string" && version.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+export function assertTargetMatchesHost(target, {
+  platform = process.platform,
+  arch = process.arch,
+  glibc = isGlibcRuntime(),
+} = {}) {
+  const detectedTarget = targetForHost(platform, arch, glibc);
+  if (target !== detectedTarget) {
+    throw new Error(`Release target ${target} does not match this host (${detectedTarget})`);
+  }
+  return detectedTarget;
 }
 
 export function normalizeVersion(value) {
@@ -86,7 +107,7 @@ export function releaseRequirements() {
     node: requiredNodeVersion,
     pandoc: "3.7.0.2",
     epubcheck: "5.3.0 with Java",
-    browser: "Google Chrome or Chromium",
+    browser: "Google Chrome, Chromium, or Microsoft Edge",
     poppler: "pdfinfo and pdftoppm",
   };
 }
