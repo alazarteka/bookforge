@@ -106,7 +106,7 @@ export function releaseRequirements() {
     pandoc: "3.7.0.2",
     epubcheck: "5.3.0 with Java",
     browser: "Google Chrome, Chromium, or Microsoft Edge",
-    poppler: "pdfinfo and pdftoppm",
+    poppler: "pdfinfo",
   };
 }
 

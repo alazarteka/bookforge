@@ -39,6 +39,11 @@ Use `--theme <id>` to override the configured theme for one build or live
 preview. The override is never written back to `book.yaml`; a normal command
 without `--theme` still uses the configured theme.
 
+An overridden build whose theme differs from `book.yaml` leaves `dist/` with a
+theme-mismatched manifest, so `bookforge check` rejects it. Prefer `preview
+--theme <id>` for temporary inspection, then run an ordinary build with the
+configured theme before `check`.
+
 ```sh
 bookforge build . --format web --theme meridian
 bookforge preview . --theme riso-club

@@ -13,11 +13,12 @@ print policies backed by one shared theme.
 
 ## Install a release
 
-Bookforge ships as private-package GitHub Release bundles for macOS on Apple
-Silicon and glibc Linux x86_64. They include no Node runtime: install
-Node.js 24.18.0 plus the publishing prerequisites first, then use the verified
-GitHub Release installer. See [release installation and updates](docs/RELEASES.md)
-for prerequisites, checksums, managed updates, and rollback.
+Bookforge's npm package is private; verified GitHub Release bundles are its
+distribution channel for macOS on Apple Silicon and glibc Linux x86_64. They
+include no Node runtime: install Node.js 24.18.0 plus the publishing
+prerequisites first, then use the verified GitHub Release installer. See
+[release installation and updates](docs/RELEASES.md) for prerequisites,
+checksums, managed updates, and rollback.
 
 ## Build from source
 
@@ -84,16 +85,37 @@ before publishing.
 ### Validate a manuscript before building
 
 `lint` validates only `book.yaml`, Markdown chapters, chapter links, and local
-image references. It does not require a previous `dist/` build, a theme, or
-output tools, and it reports every problem it can find in one run.
+image references. It needs Pandoc to parse chapters, but not a previous `dist/`
+build, a theme, EPUBCheck, Vivliostyle, a browser, or Poppler. It reports every
+problem it can find in one run.
 
 ```sh
 bookforge lint ../my-book
 # `preflight` is an alias for `lint`
 ```
 
-A project contains `book.yaml`, an ordered chapter list, and local assets. A
-complete build produces:
+A project contains `book.yaml`, an ordered chapter list, and local assets. Use
+this lifecycle while authoring:
+
+```sh
+bookforge lint ../my-book
+bookforge build ../my-book
+bookforge check ../my-book
+```
+
+A normal build renders every output declared in `book.yaml`. `check` requires
+fresh `dist/` artifacts whose formats match those configured outputs, and
+rejects stale or partial artifacts. Use `build --format …` for an ad-hoc partial
+build; use `preview` for a live web-only editing view in `.bookforge-preview/`
+without replacing `dist/`.
+
+A temporary `build --theme <id>` that differs from `book.yaml` also leaves a
+theme-mismatched build manifest that `check` rejects. Prefer `preview --theme
+<id>` for temporary inspection, then run an ordinary build with the configured
+theme before `check`.
+
+The default project created by `init` enables all three outputs, so its full
+build produces:
 
 ```text
 dist/
@@ -164,11 +186,12 @@ applicable build manifest.
 
 ## Documentation
 
-- [Project scope](docs/SCOPE.md)
+- [Book project reference](docs/BOOK_PROJECTS.md)
 - [Supported Markdown](docs/MARKDOWN.md)
 - [Theme authoring](docs/THEMES.md)
 - [Print profiles](docs/PRINT_PROFILES.md)
 - [Dependency security](docs/SECURITY.md)
 - [Supported target setup](docs/MACHINE_SETUP.md)
 - [Release installation and compatibility](docs/RELEASES.md)
-- [Architecture decisions](docs/DECISIONS.md)
+- [Project scope and planning record](docs/SCOPE.md)
+- [Architecture decision record](docs/DECISIONS.md)

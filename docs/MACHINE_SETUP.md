@@ -26,7 +26,7 @@ The exact compatibility baseline is intentionally narrow:
 | EPUBCheck | 5.3.0 with a compatible Java runtime (doctor-enforced) |
 | Vivliostyle CLI | 11.1.0, installed as a project dependency (doctor-enforced) |
 | Browser | A runnable Google Chrome, Chromium, or Microsoft Edge for PDF rendering |
-| Poppler | Runnable `pdfinfo` and `pdftoppm` commands |
+| Poppler | A runnable `pdfinfo` command |
 
 Install Node.js from a trusted source appropriate for the host, such as the
 official distribution or a version manager. Confirm that its `bin` directory
@@ -49,8 +49,8 @@ systems are sufficient.
 `doctor` enforces the exact Node, Pandoc, EPUBCheck, and project-local
 Vivliostyle versions, and requires that the selected browser and `pdfinfo` run
 successfully. It does not require or report pnpm: pnpm is only needed to build
-from a source checkout. Browser and Poppler versions are not locked. A full PDF
-build also needs `pdftoppm`.
+from a source checkout. Browser and Poppler versions are not locked. `pdfinfo`
+is also the Poppler command Bookforge uses to validate completed PDF output.
 
 ## macOS examples
 
@@ -102,4 +102,5 @@ an incompatible version.
 
 PDF output goes through Vivliostyle and a local Chrome, Chromium, or Microsoft
 Edge browser rather than Pandoc's LaTeX pathway. Optional later validators
-include DAISY Ace and Calibre.
+include DAISY Ace and Calibre. For author-facing PDF geometry, profiles, and
+overrides, see [Print Profiles](PRINT_PROFILES.md).

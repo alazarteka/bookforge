@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { assertTargetMatchesHost, isSafeArchivePath, normalizeVersion, releaseAssetName, releaseTargets, targetForHost } from "./release-lib.mjs";
+import { assertTargetMatchesHost, isSafeArchivePath, normalizeVersion, releaseAssetName, releaseRequirements, releaseTargets, targetForHost } from "./release-lib.mjs";
 
 function command(executable, args) {
   return new Promise((resolve, reject) => {
@@ -47,6 +47,10 @@ test("rejects traversal in release archive paths", () => {
   assert.equal(isSafeArchivePath("bookforge/../../etc/passwd"), false);
   assert.equal(isSafeArchivePath("/tmp/bookforge"), false);
   assert.equal(releaseAssetName("1.2.3", "darwin-arm64"), "bookforge-1.2.3-darwin-arm64.tar.gz");
+});
+
+test("records the Poppler command used for runtime PDF validation", () => {
+  assert.equal(releaseRequirements().poppler, "pdfinfo");
 });
 
 test("aggregates all target manifests and checksums without network access", async () => {
