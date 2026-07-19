@@ -20,7 +20,11 @@ export function renderInlines(inlines: Inline[], context: HtmlContext): string {
       case "code": return `<code>${escapeHtml(inline.value)}</code>`;
       case "link": {
         let href = inline.href;
-        if (href.endsWith(".md")) href = `${context.chapterFile(href.replace(/^.*\//, "").replace(/\.md$/, ""))}`;
+        const chapter = href.match(/^([a-z0-9][a-z0-9._-]*)\.md(?:#(.*))?$/i);
+        if (chapter) {
+          const destination = context.chapterFile(chapter[1]!);
+          href = chapter[2] === undefined ? destination : destination.startsWith("#") ? `#${chapter[2]}` : `${destination}#${chapter[2]}`;
+        }
         return `<a href="${escapeHtml(href)}"${inline.title ? ` title="${escapeHtml(inline.title)}"` : ""}>${renderInlines(inline.children, context)}</a>`;
       }
       case "image": {
@@ -130,7 +134,7 @@ function titleSelfNumbers(title: Inline[]): boolean {
 
 export function sectionArticle(section: Section, publication: Publication, context: HtmlContext, kicker = ""): string {
   const showKicker = kicker && !titleSelfNumbers(section.title);
-  const header = `<header class="chapter-header">${showKicker ? `<p class="chapter-kicker">${escapeHtml(kicker)}</p>` : ""}<h1>${renderInlines(section.title, context)}</h1></header>`;
+  const header = `<header class="chapter-header">${showKicker ? `<p class="chapter-kicker">${escapeHtml(kicker)}</p>` : ""}<h1${section.titleAnchor ? ` id="${escapeHtml(section.titleAnchor)}"` : ""}>${renderInlines(section.title, context)}</h1></header>`;
   // Suppress the drop cap when the chapter opens on non-letter punctuation (a quote or
   // dash) — CSS ::first-letter would otherwise enlarge the punctuation mark.
   const first = section.blocks[0];
