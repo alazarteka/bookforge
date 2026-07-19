@@ -10,6 +10,7 @@ import { renderPdf } from "./pdf.js";
 import { loadTheme } from "./theme-loader.js";
 import { loadPrintProfile } from "./profile-loader.js";
 import { visitBlocks, visitPublication } from "./traversal.js";
+import { projectToolExecutable } from "./tool-paths.js";
 import { BOOKFORGE_VERSION, commandVersion, containedPath, run, sha256, sourceEpochDate } from "./util.js";
 
 export type Format = "web" | "epub" | "pdf";
@@ -136,7 +137,7 @@ export async function buildProject(project: string, requested?: Format[]): Promi
 async function toolVersions(formats: Format[]): Promise<Record<string, string>> {
   const commands: Array<[string, string, string[]]> = [["node", "node", ["--version"]], ["pandoc", "pandoc", ["--version"]]];
   if (formats.includes("epub")) commands.push(["epubcheck", "epubcheck", ["--version"]]);
-  if (formats.includes("pdf")) commands.push(["vivliostyle", path.resolve(import.meta.dirname, "..", "node_modules", ".bin", "vivliostyle"), ["--version"]]);
+  if (formats.includes("pdf")) commands.push(["vivliostyle", projectToolExecutable(path.resolve(import.meta.dirname, ".."), "vivliostyle"), ["--version"]]);
   const versions: Record<string, string> = {};
   for (const [key, command, args] of commands) {
     const result = await run(command, args, { cwd: path.resolve(import.meta.dirname, ".."), quiet: true });
