@@ -11,10 +11,12 @@ dependencies; it deliberately **does not include Node.js**.
 | --- | --- |
 | `darwin-arm64` | macOS on Apple Silicon |
 | `darwin-x64` | macOS on Intel |
-| `linux-x64-gnu` | x86_64 Linux using glibc |
+| `linux-x64-gnu` | x86_64 Linux using glibc; built and tested on Ubuntu 24.04 |
 
 Linux musl distributions and other processor architectures are not supported by
-the release bundles. The installer selects the target from `uname` and rejects
+the release bundles. Ubuntu 24.04 is the tested Linux target; compatibility
+with other distributions, particularly those with older glibc, is not
+guaranteed. The installer selects the target from `uname` and rejects
 unsupported hosts rather than attempting a fallback.
 
 ## Prerequisites
@@ -27,21 +29,42 @@ missing or incompatible.
   retain control of the runtime's security updates and system integration.
 - Pandoc 3.7.0.2.
 - EPUBCheck 5.3.0 and a compatible Java runtime.
-- Google Chrome or Chromium for Vivliostyle PDF rendering.
+- Google Chrome, Chromium, or Microsoft Edge for Vivliostyle PDF rendering.
 - Poppler (`pdfinfo` and `pdftoppm`).
+- The managed installer is a Bash script, not a POSIX `sh` script. Its bootstrap
+  dependencies are `bash`, `curl`, `tar`, `mktemp`, `find`, `awk`, `readlink`,
+  and either `shasum` (macOS) or `sha256sum` (Linux), plus standard file
+  utilities. On Linux it also requires `getconf` to identify glibc.
 
-On macOS, Homebrew can supply the external tools:
+`bookforge doctor` enforces the exact Node, Pandoc, EPUBCheck, and project-local
+Vivliostyle versions. It checks that a browser and `pdfinfo` run, but does not
+pin their versions; a full PDF build also needs `pdftoppm`.
+
+No package manager is required on macOS. If Homebrew is the chosen package
+manager, it can supply the external tools:
 
 ```sh
 brew install pandoc epubcheck poppler
 brew install --cask google-chrome
 ```
 
-On Debian/Ubuntu-derived glibc systems, install the distribution equivalents of
-`pandoc`, `epubcheck`, a Java runtime, `chromium`, and `poppler-utils`. Those
-packages may not provide the exact Bookforge baseline on every OS release; use
-`bookforge doctor` to confirm the result instead of assuming that a package
-name guarantees compatibility.
+Package-manager formulas can move beyond the exact Pandoc and EPUBCheck
+baselines. When `doctor` reports a version mismatch, install the corresponding
+upstream release rather than treating a current package-manager formula as
+compatible.
+
+On glibc Linux, install the distribution equivalents of `pandoc`, `epubcheck`,
+a Java runtime, Chromium, Chrome, or Microsoft Edge, and `poppler-utils`. On
+Debian/Ubuntu-derived systems, a typical command is:
+
+```sh
+sudo apt-get update
+sudo apt-get install --yes pandoc epubcheck default-jre chromium poppler-utils
+```
+
+Package names and tool versions vary between distributions. Use `bookforge
+doctor` to confirm the result instead of assuming that a package name provides
+the required baseline.
 
 ## Install
 
@@ -79,15 +102,28 @@ environments; it must be an HTTPS `github.com/OWNER/REPOSITORY` URL.
 
 The installer downloads `bookforge-release-manifest.json` from the selected
 GitHub Release, selects only its host's declared archive, verifies the
-archive's SHA-256, rejects unsafe archive paths and symbolic links, validates
+archive's SHA-256, rejects unsafe archive paths or links, validates
 the extracted manifest, and only then switches `current`. It never invokes npm
 or pnpm at install/update time.
 
 Each release additionally contains `SHA256SUMS` and GitHub build provenance.
 For a manual check after downloading an archive:
 
+On macOS:
+
 ```sh
 shasum -a 256 --check bookforge-<version>-<target>.tar.gz.sha256
+```
+
+On Linux:
+
+```sh
+sha256sum --check bookforge-<version>-<target>.tar.gz.sha256
+```
+
+On either supported platform, verify the GitHub provenance with:
+
+```sh
 gh attestation verify bookforge-<version>-<target>.tar.gz \
   --repo alazarteka/bookforge
 ```
