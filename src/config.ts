@@ -21,7 +21,7 @@ export const bookConfigSchema = z.object({
   subtitle: z.string().min(1).optional(),
   language: z.string().min(2).default("en"),
   authors: z.array(z.object({ name: z.string().min(1) }).strict()).min(1),
-  theme: z.string().min(1).default("classic"),
+  theme: identifier.default("classic"),
   chapters: z.array(chapterSchema).min(1),
   outputs: z.object({
     web: z.object({ reading: z.enum(["paged", "continuous"]).default("paged") }).strict().optional(),

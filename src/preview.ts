@@ -15,18 +15,7 @@ export async function previewProject(project: string, port = 4173): Promise<void
   const rebuild = async () => {
     if (building) { queued = true; return; }
     building = true;
-    try {
-      const { publication, theme } = await createPublication(root);
-      const stage = await mkdtemp(path.join(root, ".bookforge-preview-stage-"));
-      await renderWeb(publication, theme, stage);
-      const target = path.join(root, ".bookforge-preview");
-      const previous = path.join(root, ".bookforge-preview-previous");
-      await rm(previous, { recursive: true, force: true });
-      await rename(target, previous).catch(() => undefined);
-      await rename(stage, target);
-      await rm(previous, { recursive: true, force: true });
-      console.log(`[bookforge] rebuilt ${new Date().toLocaleTimeString()}`);
-    }
+    try { await rebuildPreview(root); console.log(`[bookforge] rebuilt ${new Date().toLocaleTimeString()}`); }
     catch (error) { console.error(`[bookforge] rebuild failed: ${error instanceof Error ? error.message : String(error)}`); }
     finally { building = false; if (queued) { queued = false; void rebuild(); } }
   };
@@ -50,4 +39,22 @@ export async function previewProject(project: string, port = 4173): Promise<void
     if (!filename || filename.startsWith("dist/") || filename.startsWith(".bookforge-")) return;
     if (/\.(md|ya?ml|css|jpe?g|png|webp|gif)$/i.test(filename)) void rebuild();
   });
+}
+
+export async function rebuildPreview(root: string, render: typeof renderWeb = renderWeb): Promise<void> {
+  const { publication, theme } = await createPublication(root);
+  const stage = await mkdtemp(path.join(root, ".bookforge-preview-stage-"));
+  const target = path.join(root, ".bookforge-preview");
+  const previous = path.join(root, ".bookforge-preview-previous");
+  try {
+    await render(publication, theme, stage);
+    await rm(previous, { recursive: true, force: true });
+    await rename(target, previous).catch(() => undefined);
+    try { await rename(stage, target); }
+    catch (error) { await rename(previous, target).catch(() => undefined); throw error; }
+    await rm(previous, { recursive: true, force: true });
+  } catch (error) {
+    await rm(stage, { recursive: true, force: true });
+    throw error;
+  }
 }
