@@ -72,6 +72,7 @@ export function visitInlines(inlines: Inline[], visitor: IrVisitor, context: Tra
         break;
       case "emphasis":
       case "strong":
+      case "strikeout":
       case "link":
         visitInlines(inline.children, visitor, context);
         break;

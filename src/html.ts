@@ -18,6 +18,7 @@ export function renderInlines(inlines: Inline[], context: HtmlContext): string {
       case "lineBreak": return "<br />";
       case "emphasis": return `<em>${renderInlines(inline.children, context)}</em>`;
       case "strong": return `<strong>${renderInlines(inline.children, context)}</strong>`;
+      case "strikeout": return `<del>${renderInlines(inline.children, context)}</del>`;
       case "code": return `<code>${escapeHtml(inline.value)}</code>`;
       case "link": {
         let href = inline.href;

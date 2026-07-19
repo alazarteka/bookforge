@@ -147,7 +147,14 @@ async function parseSource(markdown: string): Promise<unknown> {
 }
 
 test("parseMarkdown rejects raw HTML", async () => {
-  await assert.rejects(parseSource("<div>hello</div>\n"), /raw HTML is not supported/);
+  await assert.rejects(parseSource("<div>hello</div>\n"), /chapter\.md:1:1: raw HTML is not supported; write literal angle-bracket text as inline code/);
+});
+
+test("parseMarkdown supports GFM strikeout", async () => {
+  const section = await parseSource("# Title\n\nA ~~deliberate revision~~.\n") as Awaited<ReturnType<typeof parseMarkdown>>;
+  const paragraph = section.blocks[0];
+  assert.equal(paragraph?.type, "paragraph");
+  if (paragraph?.type === "paragraph") assert.equal(paragraph.children[2]?.type, "strikeout");
 });
 
 test("parseMarkdown rejects a javascript: link protocol", async () => {

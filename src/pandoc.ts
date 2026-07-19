@@ -8,8 +8,10 @@ interface PandocDocument { "pandoc-api-version": number[]; meta: unknown; blocks
 
 export async function parseMarkdown(file: string, projectRoot: string, id: string, role: SectionRole, configuredTitle?: string): Promise<Section> {
   const source = await readFile(file, "utf8");
-  if (/^\s*<\/?[A-Za-z][^>]*>/m.test(source)) throw new Error(`${id}: raw HTML is not supported`);
-  if (/!\[[^\]]*\]\(https?:\/\//i.test(source)) throw new Error(`${id}: remote images are not supported`);
+  const rawHtml = /^\s*<\/?[A-Za-z][^>]*>/m.exec(source);
+  if (rawHtml?.index !== undefined) throw sourceError(file, source, rawHtml.index, "raw HTML is not supported; write literal angle-bracket text as inline code, for example `<option>`.");
+  const remoteImage = /!\[[^\]]*\]\(https?:\/\//i.exec(source);
+  if (remoteImage?.index !== undefined) throw sourceError(file, source, remoteImage.index, "remote images are not supported; download the image into this book project and link to the local file.");
   const result = await run("pandoc", [
     "--from=gfm+footnotes+attributes-raw_html+smart",
     "--to=json",
@@ -50,6 +52,7 @@ function adaptInlines(nodes: unknown, state: State): Inline[] {
     if (node.t === "LineBreak") return { type: "lineBreak" } as Inline;
     if (node.t === "Emph") return { type: "emphasis", children: adaptInlines(node.c, state) } as Inline;
     if (node.t === "Strong") return { type: "strong", children: adaptInlines(node.c, state) } as Inline;
+    if (node.t === "Strikeout") return { type: "strikeout", children: adaptInlines(node.c, state) } as Inline;
     if (node.t === "Code") return { type: "code", value: String((node.c as unknown[])[1]) } as Inline;
     if (node.t === "Link") {
       const [, content, target] = node.c as [unknown, unknown, [string, string]];
@@ -83,13 +86,20 @@ function adaptInlines(nodes: unknown, state: State): Inline[] {
       const marks = quoteType.t === "SingleQuote" ? ["‘", "’"] : ["“", "”"];
       return [{ type: "text", value: marks[0] }, ...adaptInlines(content, state), { type: "text", value: marks[1] }] as Inline[];
     }
-    throw new Error(`${state.chapterId}: unsupported inline construct ${node.t}`);
+    throw new Error(`${state.chapterId}: unsupported Markdown inline construct ${node.t}. See https://github.com/alazarteka/bookforge/blob/main/docs/MARKDOWN.md`);
   });
 }
 
 const safeLinkSchemes = new Set(["http", "https", "mailto", "tel"]);
 
 interface State { chapterId: string; projectRoot: string; sourceDirectory: string; headings: Map<string, number>; footnotes: number }
+
+function sourceError(file: string, source: string, offset: number, message: string): Error {
+  const before = source.slice(0, offset);
+  const line = before.split("\n").length;
+  const column = offset - before.lastIndexOf("\n");
+  return new Error(`${file}:${line}:${column}: ${message}`);
+}
 
 function adaptBlocks(nodes: unknown, state: State): Block[] {
   if (!Array.isArray(nodes)) throw new Error(`${state.chapterId}: malformed block list`);

@@ -98,6 +98,7 @@ export type Inline =
   | { type: "lineBreak" }
   | { type: "emphasis"; children: Inline[] }
   | { type: "strong"; children: Inline[] }
+  | { type: "strikeout"; children: Inline[] }
   | { type: "code"; value: string }
   | { type: "link"; href: string; title?: string; children: Inline[] }
   | { type: "image"; src: string; alt: Inline[]; title?: string; assetId?: string }

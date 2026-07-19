@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { sectionArticle, type HtmlContext } from "./html.js";
+import { renderInlines, sectionArticle, type HtmlContext } from "./html.js";
 import type { OutputFlavor, Publication, Section } from "./model.js";
 
 const context = (flavor: OutputFlavor): HtmlContext => ({
@@ -61,3 +61,7 @@ for (const flavor of ["web", "epub"] as const) {
     }
   });
 }
+
+test("strikethrough renders as semantic deleted text", () => {
+  assert.equal(renderInlines([{ type: "strikeout", children: [{ type: "text", value: "old wording" }] }], context("web")), "<del>old wording</del>");
+});
