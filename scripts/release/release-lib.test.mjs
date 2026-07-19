@@ -23,15 +23,15 @@ test("normalizes supported release versions", () => {
 
 test("maps only supported release hosts", () => {
   assert.equal(targetForHost("darwin", "arm64"), "darwin-arm64");
-  assert.equal(targetForHost("darwin", "x64"), "darwin-x64");
   assert.equal(targetForHost("linux", "x64"), "linux-x64-gnu");
+  assert.throws(() => targetForHost("darwin", "x64"), /Unsupported platform/);
   assert.throws(() => targetForHost("linux", "arm64"), /Unsupported platform/);
 });
 
 test("rejects a bundle target that does not match its native host", () => {
   assert.equal(assertTargetMatchesHost("darwin-arm64", { platform: "darwin", arch: "arm64" }), "darwin-arm64");
   assert.throws(
-    () => assertTargetMatchesHost("darwin-x64", { platform: "darwin", arch: "arm64" }),
+    () => assertTargetMatchesHost("linux-x64-gnu", { platform: "darwin", arch: "arm64" }),
     /does not match this host/,
   );
   assert.throws(

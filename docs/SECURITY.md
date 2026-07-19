@@ -39,7 +39,8 @@ is impossible.
 The GitHub Release workflow also runs this advisory gate before it publishes
 assets. End-user release installation never invokes a package manager: it
 verifies the published target archive SHA-256 and can be independently checked
-against GitHub build provenance. See [release installation and updates](RELEASES.md).
+against GitHub build provenance when the repository supports attestations. See
+[release installation and updates](RELEASES.md).
 
 ## Publication threat model
 

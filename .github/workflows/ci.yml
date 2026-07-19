@@ -17,8 +17,6 @@ jobs:
         include:
           - target: darwin-arm64
             runner: macos-14
-          - target: darwin-x64
-            runner: macos-15-intel
           - target: linux-x64-gnu
             runner: ubuntu-24.04
     runs-on: ${{ matrix.runner }}
@@ -29,7 +27,6 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24.18.0
-          package-manager-cache: false
       - name: Enable the pinned pnpm release
         run: |
           corepack enable

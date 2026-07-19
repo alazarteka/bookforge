@@ -1,6 +1,6 @@
 # Bookforge releases, installation, and updates
 
-Bookforge is distributed as signed GitHub Release assets, not through npm. The
+Bookforge is distributed as verified GitHub Release assets, not through npm. The
 `package.json` package remains private. Each release provides a lean archive for
 one supported host that includes Bookforge and its production JavaScript
 dependencies; it deliberately **does not include Node.js**.
@@ -10,7 +10,6 @@ dependencies; it deliberately **does not include Node.js**.
 | Release target | Host requirement |
 | --- | --- |
 | `darwin-arm64` | macOS on Apple Silicon |
-| `darwin-x64` | macOS on Intel |
 | `linux-x64-gnu` | x86_64 Linux using glibc; built and tested on Ubuntu 24.04 |
 
 Linux musl distributions and other processor architectures are not supported by
@@ -106,8 +105,8 @@ archive's SHA-256, rejects unsafe archive paths or links, validates
 the extracted manifest, and only then switches `current`. It never invokes npm
 or pnpm at install/update time.
 
-Each release additionally contains `SHA256SUMS` and GitHub build provenance.
-For a manual check after downloading an archive:
+Each release additionally contains `SHA256SUMS`. For a manual check after
+downloading an archive:
 
 On macOS:
 
@@ -121,16 +120,16 @@ On Linux:
 sha256sum --check bookforge-<version>-<target>.tar.gz.sha256
 ```
 
-On either supported platform, verify the GitHub provenance with:
+When Bookforge is published from a repository tier that supports GitHub build
+attestations, the release also has GitHub provenance. Verify it with:
 
 ```sh
 gh attestation verify bookforge-<version>-<target>.tar.gz \
   --repo alazarteka/bookforge
 ```
 
-The checksum protects the downloaded archive; provenance binds the published
-archive to the GitHub Actions release build. Both checks are recommended for
-high-assurance installations.
+The checksum protects the downloaded archive. When available, provenance also
+binds the archive to the GitHub Actions release build.
 
 ## Update, check, and rollback
 
@@ -163,5 +162,6 @@ may remove old directories only after confirming that the newer release works.
   toolchain/platform constraints.
 - Every release runs locked dependency installation, fails on published
   dependency advisories, checks web/EPUB/PDF output and every print profile on
-  all three supported targets, smoke-tests the production archive, generates
-  checksums, and uploads GitHub provenance before publishing the Release.
+  both supported targets, smoke-tests the production archive, generates
+  checksums, and publishes the GitHub Release. Provenance is added when the
+  repository supports GitHub attestations.

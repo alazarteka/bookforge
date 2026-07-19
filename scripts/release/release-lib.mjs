@@ -8,7 +8,6 @@ export const requiredNodeVersion = "24.18.0";
 
 export const releaseTargets = Object.freeze({
   "darwin-arm64": { os: "darwin", arch: "arm64", runner: "macos-14" },
-  "darwin-x64": { os: "darwin", arch: "x64", runner: "macos-15-intel" },
   "linux-x64-gnu": { os: "linux", arch: "x64", libc: "glibc", runner: "ubuntu-24.04" },
 });
 
@@ -18,7 +17,6 @@ export function releaseAssetName(version, target) {
 
 export function targetForHost(platform, arch, glibc = true) {
   if (platform === "darwin" && arch === "arm64") return "darwin-arm64";
-  if (platform === "darwin" && arch === "x64") return "darwin-x64";
   if (platform === "linux" && arch === "x64" && glibc) return "linux-x64-gnu";
   throw new Error(`Unsupported platform: ${platform}-${arch}${platform === "linux" ? " (requires glibc)" : ""}`);
 }

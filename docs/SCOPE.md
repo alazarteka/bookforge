@@ -485,5 +485,5 @@ Tests include:
 
 - Run both fixture books across all formats.
 - Improve diagnostics and failure recovery.
-- Record build provenance.
+- Record release-bundle manifests and checksums.
 - Document theme authoring and supported Markdown.

@@ -13,15 +13,15 @@ print policies backed by one shared theme.
 
 ## Install a release
 
-Bookforge ships as private-package GitHub Release bundles for macOS arm64,
-macOS x86_64, and glibc Linux x86_64. They include no Node runtime: install
+Bookforge ships as private-package GitHub Release bundles for macOS on Apple
+Silicon and glibc Linux x86_64. They include no Node runtime: install
 Node.js 24.18.0 plus the publishing prerequisites first, then use the verified
 GitHub Release installer. See [release installation and updates](docs/RELEASES.md)
-for prerequisites, checksums/provenance, managed updates, and rollback.
+for prerequisites, checksums, managed updates, and rollback.
 
 ## Build from source
 
-Source development is supported on the same macOS targets and on x86_64 Linux
+Source development is supported on macOS on Apple Silicon and on x86_64 Linux
 with glibc. Linux release builds and checks run on Ubuntu 24.04; other glibc
 distributions, especially ones with older glibc, are not guaranteed. The
 commands below use POSIX shell syntax and work in the standard shells on those

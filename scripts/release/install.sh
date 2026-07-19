@@ -37,12 +37,11 @@ release_target() {
   arch=$(uname -m)
   case "$os/$arch" in
     Darwin/arm64) printf 'darwin-arm64' ;;
-    Darwin/x86_64) printf 'darwin-x64' ;;
     Linux/x86_64)
       getconf GNU_LIBC_VERSION >/dev/null 2>&1 || fail "Linux releases require glibc (musl is unsupported)"
       printf 'linux-x64-gnu'
       ;;
-    *) fail "unsupported platform: $os $arch (supported: macOS arm64/x86_64, Linux x86_64 glibc)" ;;
+    *) fail "unsupported platform: $os $arch (supported: macOS Apple Silicon, Linux x86_64 glibc)" ;;
   esac
 }
 

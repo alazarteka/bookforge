@@ -22,7 +22,6 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24.18.0
-          package-manager-cache: false
       - name: Enable the pinned pnpm release
         run: |
           corepack enable
@@ -43,8 +42,6 @@ jobs:
         include:
           - target: darwin-arm64
             runner: macos-14
-          - target: darwin-x64
-            runner: macos-15-intel
           - target: linux-x64-gnu
             runner: ubuntu-24.04
     runs-on: ${{ matrix.runner }}
@@ -55,7 +52,6 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24.18.0
-          package-manager-cache: false
       - name: Enable the pinned pnpm release
         run: |
           corepack enable
@@ -89,7 +85,7 @@ jobs:
           path: dist/release/*
 
   publish:
-    name: attest and publish GitHub Release
+    name: publish GitHub Release
     needs: build
     runs-on: ubuntu-24.04
     steps:
@@ -99,7 +95,6 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24.18.0
-          package-manager-cache: false
       - name: Enable the pinned pnpm release
         run: |
           corepack enable
@@ -116,6 +111,7 @@ jobs:
           chmod 755 dist/release/bookforge-install.sh
           pnpm run release:manifest -- --input dist/release --output dist/release
       - name: Attest the published bundles
+        if: ${{ !github.event.repository.private }}
         uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999 # v4
         with:
           subject-path: |

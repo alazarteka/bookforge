@@ -5,7 +5,7 @@ supported targets:
 
 | Target | CPU and C library |
 | --- | --- |
-| macOS | Apple Silicon (arm64) or Intel (x86_64) |
+| macOS | Apple Silicon (arm64) |
 | Linux | x86_64 with glibc; tested in CI on Ubuntu 24.04 |
 
 Musl-based Linux distributions and other CPU architectures are outside the
