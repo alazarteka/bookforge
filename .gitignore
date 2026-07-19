@@ -5,5 +5,15 @@ output/
 dist/
 .bookforge-preview/
 .bookforge-preview-*/
+.bookforge-stage-*/
+.bookforge-previous-dist/
+*.bookforge-init-*/
+.env
+.env.*
+!.env.example
+coverage/
+*.lcov
+*.tgz
+*.tsbuildinfo
 *.log
 .DS_Store
