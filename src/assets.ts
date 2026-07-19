@@ -1,26 +1,19 @@
 import path from "node:path";
 import { mkdir } from "node:fs/promises";
 import sharp from "sharp";
-import type { Asset, Block, Inline, Publication } from "./model.js";
+import type { Asset, Publication } from "./model.js";
+import { visitPublication } from "./traversal.js";
 import { containedPath, ensureFile, fileHash, sha256 } from "./util.js";
 
 const mediaTypes: Record<string, string> = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif" };
 
 export async function collectAssets(publication: Publication, projectRoot: string): Promise<void> {
   const refs: Array<{ src: string; assign: (id: string) => void }> = [];
-  const visitInlines = (inlines: Inline[]) => inlines.forEach((inline) => {
-    if (inline.type === "image") refs.push({ src: inline.src, assign: (assetId) => { inline.assetId = assetId; } });
-    if (inline.type === "footnote") visitBlocks(inline.blocks);
-    if ("children" in inline && Array.isArray(inline.children)) visitInlines(inline.children);
-  });
-  const visitBlocks = (blocks: Block[]) => blocks.forEach((block) => {
-    if (block.type === "paragraph" || block.type === "heading") visitInlines(block.children);
-    else if (block.type === "blockquote") visitBlocks(block.blocks);
-    else if (block.type === "list") block.items.forEach(visitBlocks);
-    else if (block.type === "figure") { visitInlines([block.image]); visitInlines(block.caption); }
-    else if (block.type === "table") { block.headers.forEach(visitInlines); block.rows.flat().forEach(visitInlines); }
-  });
-  publication.spine.forEach((section) => visitBlocks(section.blocks));
+  visitPublication(publication, {
+    inline: (inline) => {
+      if (inline.type === "image") refs.push({ src: inline.src, assign: (assetId) => { inline.assetId = assetId; } });
+    },
+  }, { includeTitles: false });
   const known = new Map<string, Asset>();
   for (const ref of refs) {
     const sourcePath = containedPath(projectRoot, ref.src);

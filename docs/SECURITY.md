@@ -36,6 +36,11 @@ including low-severity findings. It does not claim to prove that every line of
 every dependency has been manually audited or that an unpublished compromise
 is impossible.
 
+The GitHub Release workflow also runs this advisory gate before it publishes
+assets. End-user release installation never invokes a package manager: it
+verifies the published target archive SHA-256 and can be independently checked
+against GitHub build provenance. See [release installation and updates](RELEASES.md).
+
 ## Publication threat model
 
 - Source and asset paths must remain inside the book project.

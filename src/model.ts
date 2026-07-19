@@ -78,6 +78,8 @@ export interface Section {
   id: string;
   role: SectionRole;
   title: Inline[];
+  /** The generated target for a level-one Markdown title, when one supplied the section title. */
+  titleAnchor?: string;
   blocks: Block[];
 }
 

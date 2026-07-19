@@ -1,4 +1,5 @@
 import type { Asset, Block, Inline, OutputFlavor, Publication, Section } from "./model.js";
+import { visitBlocks } from "./traversal.js";
 import { escapeHtml, inlineText } from "./util.js";
 
 export interface HtmlContext {
@@ -20,7 +21,11 @@ export function renderInlines(inlines: Inline[], context: HtmlContext): string {
       case "code": return `<code>${escapeHtml(inline.value)}</code>`;
       case "link": {
         let href = inline.href;
-        if (href.endsWith(".md")) href = `${context.chapterFile(href.replace(/^.*\//, "").replace(/\.md$/, ""))}`;
+        const chapter = href.match(/^([a-z0-9][a-z0-9._-]*)\.md(?:#(.*))?$/i);
+        if (chapter) {
+          const destination = context.chapterFile(chapter[1]!);
+          href = chapter[2] === undefined ? destination : destination.startsWith("#") ? `#${chapter[2]}` : `${destination}#${chapter[2]}`;
+        }
         return `<a href="${escapeHtml(href)}"${inline.title ? ` title="${escapeHtml(inline.title)}"` : ""}>${renderInlines(inline.children, context)}</a>`;
       }
       case "image": {
@@ -58,18 +63,11 @@ export function renderBlocks(blocks: Block[], context: HtmlContext): string {
 
 const collectFootnotes = (blocks: Block[]): Array<Extract<Inline, { type: "footnote" }>> => {
   const notes: Array<Extract<Inline, { type: "footnote" }>> = [];
-  const scanInlines = (inlines: Inline[]) => inlines.forEach((inline) => {
-    if (inline.type === "footnote") { notes.push(inline); scanBlocks(inline.blocks); }
-    else if ("children" in inline && Array.isArray(inline.children)) scanInlines(inline.children);
+  visitBlocks(blocks, {
+    inline: (inline) => {
+      if (inline.type === "footnote") notes.push(inline);
+    },
   });
-  const scanBlocks = (list: Block[]) => list.forEach((block) => {
-    if (block.type === "paragraph" || block.type === "heading") scanInlines(block.children);
-    else if (block.type === "blockquote") scanBlocks(block.blocks);
-    else if (block.type === "list") block.items.forEach(scanBlocks);
-    else if (block.type === "figure") { scanInlines([block.image]); scanInlines(block.caption); }
-    else if (block.type === "table") { block.headers.forEach(scanInlines); block.rows.flat().forEach(scanInlines); }
-  });
-  scanBlocks(blocks);
   return notes;
 };
 
@@ -130,7 +128,7 @@ function titleSelfNumbers(title: Inline[]): boolean {
 
 export function sectionArticle(section: Section, publication: Publication, context: HtmlContext, kicker = ""): string {
   const showKicker = kicker && !titleSelfNumbers(section.title);
-  const header = `<header class="chapter-header">${showKicker ? `<p class="chapter-kicker">${escapeHtml(kicker)}</p>` : ""}<h1>${renderInlines(section.title, context)}</h1></header>`;
+  const header = `<header class="chapter-header">${showKicker ? `<p class="chapter-kicker">${escapeHtml(kicker)}</p>` : ""}<h1${section.titleAnchor ? ` id="${escapeHtml(section.titleAnchor)}"` : ""}>${renderInlines(section.title, context)}</h1></header>`;
   // Suppress the drop cap when the chapter opens on non-letter punctuation (a quote or
   // dash) — CSS ::first-letter would otherwise enlarge the punctuation mark.
   const first = section.blocks[0];

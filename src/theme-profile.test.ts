@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { buildProject } from "./build.js";
@@ -72,4 +72,65 @@ assets: []
     await writeFile(path.join(themeRoot, "style.css"), `body { background: url("https://example.com/tracker.png"); }`);
     await assert.rejects(loadTheme(root, "unsafe"), /remote, embedded, or executable/);
   } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("rejects a project theme style symbolic link that escapes the project", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-theme-link-"));
+  const outside = await mkdtemp(path.join(tmpdir(), "bookforge-outside-"));
+  try {
+    const themeRoot = path.join(root, "theme");
+    await mkdir(themeRoot, { recursive: true });
+    const style = path.join(outside, "style.css");
+    await writeFile(style, "body { color: black; }\n");
+    await symlink(style, path.join(themeRoot, "style.css"));
+    await writeFile(path.join(themeRoot, "theme.yaml"), `schema: 1
+id: linked-theme
+name: Linked Theme
+version: 1.0.0
+styles: { tokens: style.css, body: style.css, web: style.css, epub: style.css, print: style.css, cover: style.css }
+assets: []
+`);
+    await assert.rejects(loadTheme(root, "linked-theme"), /symbolic link/);
+  } finally {
+    await Promise.all([rm(root, { recursive: true, force: true }), rm(outside, { recursive: true, force: true })]);
+  }
+});
+
+test("rejects a project theme directory symbolic link that escapes the project", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-theme-link-"));
+  const outside = await mkdtemp(path.join(tmpdir(), "bookforge-outside-"));
+  try {
+    await writeFile(path.join(outside, "style.css"), "body { color: black; }\n");
+    await writeFile(path.join(outside, "theme.yaml"), `schema: 1
+id: linked-theme
+name: Linked Theme
+version: 1.0.0
+styles: { tokens: style.css, body: style.css, web: style.css, epub: style.css, print: style.css, cover: style.css }
+assets: []
+`);
+    await symlink(outside, path.join(root, "theme"), "dir");
+    await assert.rejects(loadTheme(root, "linked-theme"), /symbolic link/);
+  } finally {
+    await Promise.all([rm(root, { recursive: true, force: true }), rm(outside, { recursive: true, force: true })]);
+  }
+});
+
+test("rejects a project profile symbolic link that escapes the project", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-profile-link-"));
+  const outside = await mkdtemp(path.join(tmpdir(), "bookforge-outside-"));
+  try {
+    await mkdir(path.join(root, "profiles"));
+    const profile = path.join(outside, "linked.yaml");
+    await writeFile(profile, `schema: 1
+id: linked
+name: Linked
+page: A5
+margins: 10mm
+binding: screen
+`);
+    await symlink(profile, path.join(root, "profiles", "linked.yaml"));
+    await assert.rejects(loadPrintProfile(root, { profile: "linked" }), /symbolic link/);
+  } finally {
+    await Promise.all([rm(root, { recursive: true, force: true }), rm(outside, { recursive: true, force: true })]);
+  }
 });

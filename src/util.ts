@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
@@ -44,11 +45,24 @@ export function containedPath(root: string, relative: string): string {
   if (path.isAbsolute(relative)) throw new Error(`Absolute paths are not allowed: ${relative}`);
   const resolvedRoot = path.resolve(root);
   const resolved = path.resolve(resolvedRoot, relative);
-  const relation = path.relative(resolvedRoot, resolved);
-  if (relation.startsWith("..") || path.isAbsolute(relation)) {
+  if (!isContained(resolvedRoot, resolved)) {
     throw new Error(`Path escapes project root: ${relative}`);
   }
+  const canonicalRoot = realPath(resolvedRoot);
+  const canonicalPath = realPath(resolved);
+  if (canonicalRoot && canonicalPath && !isContained(canonicalRoot, canonicalPath)) {
+    throw new Error(`Path escapes project root through a symbolic link: ${relative}`);
+  }
   return resolved;
+}
+
+function isContained(root: string, candidate: string): boolean {
+  const relation = path.relative(root, candidate);
+  return relation === "" || (!relation.startsWith(`..${path.sep}`) && relation !== ".." && !path.isAbsolute(relation));
+}
+
+function realPath(file: string): string | undefined {
+  try { return realpathSync.native(file); } catch { return undefined; }
 }
 
 export async function ensureFile(file: string, label = "File"): Promise<void> {

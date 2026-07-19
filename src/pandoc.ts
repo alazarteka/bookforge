@@ -21,8 +21,10 @@ export async function parseMarkdown(file: string, projectRoot: string, id: strin
   const state = { chapterId: id, projectRoot, sourceDirectory: path.dirname(file), headings: new Map<string, number>(), footnotes: 0 };
   const blocks = document.blocks.map((block) => adaptBlock(block, state));
   let title: Inline[] = configuredTitle ? [{ type: "text", value: configuredTitle }] : [{ type: "text", value: id }];
+  let titleAnchor: string | undefined;
   if (!configuredTitle && blocks[0]?.type === "heading" && blocks[0].level === 1) {
     title = blocks[0].children;
+    titleAnchor = blocks[0].id;
     blocks.shift();
   }
   const bodyHeadingLevels = blocks.filter((block): block is Extract<Block, { type: "heading" }> => block.type === "heading").map((block) => block.level);
@@ -35,7 +37,7 @@ export async function parseMarkdown(file: string, projectRoot: string, id: strin
     if (block.level > previousHeading + 1) throw new Error(`${id}: heading hierarchy jumps from level ${previousHeading} to ${block.level}`);
     previousHeading = block.level;
   }
-  return { id, role, title, blocks };
+  return { id, role, title, ...(titleAnchor ? { titleAnchor } : {}), blocks };
 }
 
 function adaptInlines(nodes: unknown, state: State): Inline[] {
@@ -52,10 +54,11 @@ function adaptInlines(nodes: unknown, state: State): Inline[] {
     if (node.t === "Link") {
       const [, content, target] = node.c as [unknown, unknown, [string, string]];
       let [href, title] = target;
-      if (/^javascript:/i.test(href)) throw new Error(`${state.chapterId}: unsafe link protocol`);
-      if (!/^[a-z]+:/i.test(href) && !href.startsWith("#")) {
+      const scheme = href.match(/^([a-z][a-z0-9+.-]*):/i)?.[1]?.toLowerCase();
+      if (href.startsWith("//") || (scheme && !safeLinkSchemes.has(scheme))) throw new Error(`${state.chapterId}: unsafe link protocol`);
+      if (!scheme && !href.startsWith("#")) {
         const [targetPath, fragment] = href.split("#", 2);
-        if (targetPath?.endsWith(".md")) href = `${path.relative(state.projectRoot, path.resolve(state.sourceDirectory, targetPath))}${fragment ? `#${fragment}` : ""}`;
+        if (targetPath && /\.md$/i.test(targetPath)) href = `${path.relative(state.projectRoot, path.resolve(state.sourceDirectory, targetPath))}${fragment ? `#${fragment}` : ""}`;
       }
       return { type: "link", href, ...(title ? { title } : {}), children: adaptInlines(content, state) } as Inline;
     }
@@ -83,6 +86,8 @@ function adaptInlines(nodes: unknown, state: State): Inline[] {
     throw new Error(`${state.chapterId}: unsupported inline construct ${node.t}`);
   });
 }
+
+const safeLinkSchemes = new Set(["http", "https", "mailto", "tel"]);
 
 interface State { chapterId: string; projectRoot: string; sourceDirectory: string; headings: Map<string, number>; footnotes: number }
 

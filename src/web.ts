@@ -6,7 +6,7 @@ import { themeCss, writeThemeAssets } from "./theme-loader.js";
 import { escapeHtml, inlineText } from "./util.js";
 import { writeAssets } from "./assets.js";
 
-const readerJs = `
+export const readerJs = `
 (() => {
   const root = document.documentElement;
   let saved = {}; try { saved = JSON.parse(localStorage.getItem("bookforge-reader") || "{}"); } catch {}
@@ -26,9 +26,10 @@ const readerJs = `
   document.querySelector("[data-size-down]")?.addEventListener("click", () => { root.style.fontSize = Math.max(14, parseFloat(getComputedStyle(root).fontSize) - 1) + "px"; persist(); });
   document.querySelector("[data-size-up]")?.addEventListener("click", () => { root.style.fontSize = Math.min(24, parseFloat(getComputedStyle(root).fontSize) + 1) + "px"; persist(); });
   const progress = document.querySelector(".reading-progress");
-  const update = () => { const max = document.documentElement.scrollHeight - innerHeight; const value = max > 0 ? scrollY / max * 100 : 0; progress?.style.setProperty("--progress", value + "%"); localStorage.setItem("bookforge-position:" + location.pathname, String(scrollY)); };
+  const positionKey = "bookforge-position:" + location.pathname;
+  const last = Number(localStorage.getItem(positionKey)); if (last > 0) scrollTo(0, last);
+  const update = () => { const max = document.documentElement.scrollHeight - innerHeight; const value = max > 0 ? scrollY / max * 100 : 0; progress?.style.setProperty("--progress", value + "%"); localStorage.setItem(positionKey, String(scrollY)); };
   addEventListener("scroll", update, { passive: true }); update();
-  const last = Number(localStorage.getItem("bookforge-position:" + location.pathname)); if (last > 0) scrollTo(0, last);
 })();`;
 
 function bar(publication: Publication, opts: { home: string; contents?: string }): string {

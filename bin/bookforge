@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+set -eu
+
+ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
+EXPECTED_NODE="v24.18.0"
+
+if ! NODE_VERSION=$(node --version 2>/dev/null); then
+  echo "bookforge: Node.js 24.18.0 is required but node is unavailable" >&2
+  exit 1
+fi
+if [ "$NODE_VERSION" != "$EXPECTED_NODE" ]; then
+  echo "bookforge: Node.js 24.18.0 is required; found $NODE_VERSION" >&2
+  exit 1
+fi
+
+case "${1:-}" in
+  update|rollback)
+    command=$1
+    shift
+    exec "$ROOT/installer/manage.sh" "$command" "$@"
+    ;;
+esac
+
+exec node "$ROOT/lib/cli.js" "$@"

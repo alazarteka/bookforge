@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cp, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { containedPath } from "./util.js";
@@ -41,12 +41,43 @@ test("containedPath accepts a normal nested path", () => {
   assert.equal(containedPath(root, "chapters/one.md"), path.join(root, "chapters", "one.md"));
 });
 
+test("loadConfig rejects a chapter symbolic link that escapes the project", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-reject-chapter-link-"));
+  const outside = await mkdtemp(path.join(tmpdir(), "bookforge-outside-"));
+  try {
+    await cp(fixture, root, { recursive: true });
+    const target = path.join(outside, "chapter.md");
+    await writeFile(target, "# Outside\n");
+    await symlink(target, path.join(root, "chapters", "escape.md"));
+    await writeFile(path.join(root, "book.yaml"), [
+      "schema: 1",
+      "id: linked-book",
+      "title: T",
+      "authors:",
+      "  - name: A",
+      "chapters:",
+      "  - id: chapter",
+      "    path: chapters/escape.md",
+      "outputs:",
+      "  web: {}",
+      "",
+    ].join("\n"));
+    await assert.rejects(loadConfig(root), /symbolic link/);
+  } finally {
+    await Promise.all([rm(root, { recursive: true, force: true }), rm(outside, { recursive: true, force: true })]);
+  }
+});
+
 test("bookConfigSchema rejects unknown top-level keys (strict)", () => {
   assert.throws(() => bookConfigSchema.parse({ ...validConfig, extra: true }), /[Uu]nrecognized key/);
 });
 
 test("bookConfigSchema rejects an empty outputs object", () => {
   assert.throws(() => bookConfigSchema.parse({ ...validConfig, outputs: {} }), /at least one output is required/);
+});
+
+test("bookConfigSchema rejects a theme path instead of an identifier", () => {
+  assert.throws(() => bookConfigSchema.parse({ ...validConfig, theme: "../outside" }), /lowercase stable identifier/);
 });
 
 test("loadConfig rejects a duplicate chapter id", async () => {
@@ -123,6 +154,15 @@ test("parseMarkdown rejects a javascript: link protocol", async () => {
   await assert.rejects(parseSource("[click me](javascript:alert(1))\n"), /unsafe link protocol/);
 });
 
+test("parseMarkdown rejects non-allowlisted and protocol-relative links", async () => {
+  await assert.rejects(parseSource("[data](data:text/html,hello)\n"), /unsafe link protocol/);
+  await assert.rejects(parseSource("[network-path](//example.com/path)\n"), /unsafe link protocol/);
+});
+
+test("parseMarkdown permits explicitly allowlisted link protocols", async () => {
+  await assert.doesNotReject(parseSource("[web](https://example.com) [mail](mailto:reader@example.com) [call](tel:+821012345678)\n"));
+});
+
 test("parseMarkdown rejects an image without alternative text", async () => {
   await assert.rejects(parseSource("![](figure.png)\n"), /images require alternative text/);
 });
@@ -163,5 +203,20 @@ test("createPublication rejects a broken chapter link", async () => {
     await assert.rejects(createPublication(root), /Broken chapter link/);
   } finally {
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("createPublication rejects an image symbolic link that escapes the project", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-reject-image-link-"));
+  const outside = await mkdtemp(path.join(tmpdir(), "bookforge-outside-"));
+  try {
+    await cp(fixture, root, { recursive: true });
+    const target = path.join(outside, "image.png");
+    await cp(path.join(root, "assets", "marker.png"), target);
+    await symlink(target, path.join(root, "assets", "escape.png"));
+    await writeFile(path.join(root, "chapters", "01-threshold.md"), "# Threshold\n\n![Escaped asset](../assets/escape.png)\n");
+    await assert.rejects(createPublication(root), /symbolic link/);
+  } finally {
+    await Promise.all([rm(root, { recursive: true, force: true }), rm(outside, { recursive: true, force: true })]);
   }
 });

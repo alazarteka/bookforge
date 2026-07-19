@@ -11,6 +11,14 @@ Pandoc is used only to parse Markdown. Bookforge immediately adapts its JSON
 into a small owned publication model, then applies distinct web, EPUB, and
 print policies backed by one shared theme.
 
+## Install a release
+
+Bookforge ships as private-package GitHub Release bundles for macOS arm64,
+macOS x86_64, and glibc Linux x86_64. They include no Node runtime: install
+Node.js 24.18.0 plus the publishing prerequisites first, then use the verified
+GitHub Release installer. See [release installation and updates](docs/RELEASES.md)
+for prerequisites, checksums/provenance, managed updates, and rollback.
+
 ## Requirements
 
 This repository is pinned to Node.js 24.18.0 and pnpm 10.26.1. It also expects
@@ -99,4 +107,5 @@ applicable build manifest.
 - [Print profiles](docs/PRINT_PROFILES.md)
 - [Dependency security](docs/SECURITY.md)
 - [Machine setup](docs/MACHINE_SETUP.md)
+- [Release installation and compatibility](docs/RELEASES.md)
 - [Architecture decisions](docs/DECISIONS.md)

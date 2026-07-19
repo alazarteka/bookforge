@@ -23,13 +23,16 @@ const mediaTypes: Record<string, string> = {
 };
 
 export async function loadTheme(projectRoot: string, id: string): Promise<PublicationTheme> {
+  const bundledThemes = path.resolve(import.meta.dirname, "..", "themes");
   const candidates: Array<{ root: string; source: "project" | "built-in" }> = [
     { root: path.join(projectRoot, "theme"), source: "project" },
     { root: path.join(projectRoot, "themes", id), source: "project" },
-    { root: path.resolve(import.meta.dirname, "..", "themes", id), source: "built-in" },
+    { root: containedPath(bundledThemes, id), source: "built-in" },
   ];
   for (const candidate of candidates) {
-    const manifestFile = path.join(candidate.root, "theme.yaml");
+    const manifestFile = candidate.source === "project"
+      ? containedPath(projectRoot, path.relative(projectRoot, path.join(candidate.root, "theme.yaml")))
+      : containedPath(bundledThemes, path.join(id, "theme.yaml"));
     if (!(await stat(manifestFile).catch(() => undefined))?.isFile()) continue;
     const rawManifest = await readFile(manifestFile, "utf8");
     const manifest = themeManifestSchema.parse(YAML.parse(rawManifest, { strict: true, uniqueKeys: true }));

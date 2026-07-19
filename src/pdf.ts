@@ -1,6 +1,7 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { PrintProfile, Publication, PublicationTheme } from "./model.js";
+import { resolveBrowser } from "./browser.js";
 import { roleLabels, sectionArticle, sectionKickers } from "./html.js";
 import { themeCss, writeThemeAssets } from "./theme-loader.js";
 import { escapeHtml, inlineText, run } from "./util.js";
@@ -21,10 +22,13 @@ export async function renderPdf(publication: Publication, theme: PublicationThem
   const html = `<!doctype html><html lang="${escapeHtml(publication.metadata.language)}" data-color="${profile.color}" data-binding="${profile.binding}"><head><meta charset="utf-8"><title>${escapeHtml(publication.metadata.title)}</title><link rel="stylesheet" href="print.css"></head><body>${body}</body></html>`;
   const inputFile = path.join(printDirectory, "index.html");
   await writeFile(inputFile, html);
-  const executable = process.platform === "darwin" ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" : "";
-  const args = ["exec", "vivliostyle", "build", inputFile, "--output", outputFile, "--size", profile.page, "--timeout", "120", "--log-level", "info"];
-  if (executable) args.push("--executable-browser", executable);
-  const result = await run("pnpm", args, { cwd: path.resolve(import.meta.dirname, ".."), env: { NO_UPDATE_NOTIFIER: "1" } });
-  if (result.code !== 0) throw new Error(`Vivliostyle PDF build failed (${result.code})`);
+  const browser = await resolveBrowser();
+  if (!browser) throw new Error("No supported browser was found. Install Chrome or Chromium, or set BOOKFORGE_BROWSER to its executable path.");
+  const vivliostyle = path.resolve(import.meta.dirname, "..", "node_modules", ".bin", "vivliostyle");
+  await access(vivliostyle).catch(() => { throw new Error(`Vivliostyle is not installed at ${vivliostyle}. Run the project installation step first.`); });
+  const args = ["build", inputFile, "--output", outputFile, "--size", profile.page, "--timeout", "120", "--log-level", "info"];
+  args.push("--executable-browser", browser.executable);
+  const result = await run(vivliostyle, args, { cwd: path.resolve(import.meta.dirname, ".."), env: { NO_UPDATE_NOTIFIER: "1" } });
+  if (result.code !== 0) throw new Error(`Vivliostyle PDF build failed (${result.code}):\n${result.stdout}${result.stderr}`.trim());
   await rm(printDirectory, { recursive: true, force: true });
 }

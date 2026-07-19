@@ -3,7 +3,7 @@ import path from "node:path";
 import YAML from "yaml";
 import { z } from "zod";
 import type { BookConfig, PrintProfile } from "./model.js";
-import { sha256 } from "./util.js";
+import { containedPath, sha256 } from "./util.js";
 
 const length = String.raw`(?:0|\d+(?:\.\d+)?(?:mm|cm|in|pt))`;
 const pageValue = z.string().regex(new RegExp(String.raw`^(?:A[345]|B[45]|JIS-B[45]|letter|legal|ledger|${length},${length})$`, "i"), "must be a supported page preset or width,height pair");
@@ -23,9 +23,10 @@ const profileSchema = z.object({
 
 export async function loadPrintProfile(projectRoot: string, pdf: BookConfig["outputs"]["pdf"]): Promise<PrintProfile> {
   const id = pdf?.profile ?? "screen-a5";
+  const bundledProfiles = path.resolve(import.meta.dirname, "..", "profiles");
   const candidates: Array<{ file: string; source: "project" | "built-in" }> = [
-    { file: path.join(projectRoot, "profiles", `${id}.yaml`), source: "project" },
-    { file: path.resolve(import.meta.dirname, "..", "profiles", `${id}.yaml`), source: "built-in" },
+    { file: containedPath(projectRoot, path.join("profiles", `${id}.yaml`)), source: "project" },
+    { file: containedPath(bundledProfiles, `${id}.yaml`), source: "built-in" },
   ];
   for (const candidate of candidates) {
     if (!(await stat(candidate.file).catch(() => undefined))?.isFile()) continue;
