@@ -4,6 +4,7 @@
   "description": "Local-first Markdown publishing for web, EPUB, and PDF",
   "type": "module",
   "private": true,
+  "license": "MIT",
   "bin": {
     "bookforge": "./lib/cli.js"
   },
@@ -18,10 +19,15 @@
     "clean": "node scripts/clean.mjs",
     "fixtures:prepare": "node scripts/prepare-fixtures.mjs",
     "profiles:verify": "node scripts/verify-profiles.mjs",
-    "test": "pnpm run fixtures:prepare && pnpm run build && node --test lib/*.test.js",
+    "test": "pnpm run fixtures:prepare && pnpm run build && node --test lib/*.test.js scripts/release/*.test.mjs",
     "check": "pnpm run build && pnpm run test && pnpm run security:audit",
-    "security:audit": "pnpm audit --audit-level=low",
-    "security:verify": "pnpm install --frozen-lockfile --ignore-scripts && pnpm audit --audit-level=low"
+    "security:audit": "node scripts/release/audit.mjs",
+    "security:verify": "pnpm install --frozen-lockfile --ignore-scripts && pnpm run security:audit",
+    "prepack": "pnpm run clean && pnpm run build",
+    "release:verify": "node scripts/release/verify-release.mjs",
+    "release:bundle": "node scripts/release/build-bundle.mjs",
+    "release:manifest": "node scripts/release/create-release-manifest.mjs",
+    "release:smoke": "node scripts/release/smoke-bundle.mjs"
   },
   "packageManager": "pnpm@10.26.1",
   "engines": {
@@ -29,6 +35,7 @@
   },
   "dependencies": {
     "sharp": "0.35.3",
+    "@vivliostyle/cli": "11.1.0",
     "yaml": "2.9.0",
     "yazl": "3.3.1",
     "zod": "4.4.3"
@@ -36,7 +43,6 @@
   "devDependencies": {
     "@types/node": "24.13.3",
     "@types/yazl": "3.3.1",
-    "@vivliostyle/cli": "11.1.0",
     "typescript": "6.0.3"
   },
   "pnpm": {
