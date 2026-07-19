@@ -1,4 +1,5 @@
 import type { Asset, Block, Inline, OutputFlavor, Publication, Section } from "./model.js";
+import { visitBlocks } from "./traversal.js";
 import { escapeHtml, inlineText } from "./util.js";
 
 export interface HtmlContext {
@@ -62,18 +63,11 @@ export function renderBlocks(blocks: Block[], context: HtmlContext): string {
 
 const collectFootnotes = (blocks: Block[]): Array<Extract<Inline, { type: "footnote" }>> => {
   const notes: Array<Extract<Inline, { type: "footnote" }>> = [];
-  const scanInlines = (inlines: Inline[]) => inlines.forEach((inline) => {
-    if (inline.type === "footnote") { notes.push(inline); scanBlocks(inline.blocks); }
-    else if ("children" in inline && Array.isArray(inline.children)) scanInlines(inline.children);
+  visitBlocks(blocks, {
+    inline: (inline) => {
+      if (inline.type === "footnote") notes.push(inline);
+    },
   });
-  const scanBlocks = (list: Block[]) => list.forEach((block) => {
-    if (block.type === "paragraph" || block.type === "heading") scanInlines(block.children);
-    else if (block.type === "blockquote") scanBlocks(block.blocks);
-    else if (block.type === "list") block.items.forEach(scanBlocks);
-    else if (block.type === "figure") { scanInlines([block.image]); scanInlines(block.caption); }
-    else if (block.type === "table") { block.headers.forEach(scanInlines); block.rows.flat().forEach(scanInlines); }
-  });
-  scanBlocks(blocks);
   return notes;
 };
 

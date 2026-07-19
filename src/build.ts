@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { Block, BuildManifest, Inline, Publication } from "./model.js";
+import type { BuildManifest, Publication } from "./model.js";
 import { loadConfig } from "./config.js";
 import { parseMarkdown } from "./pandoc.js";
 import { collectAssets } from "./assets.js";
@@ -9,6 +9,7 @@ import { renderEpub } from "./epub.js";
 import { renderPdf } from "./pdf.js";
 import { loadTheme } from "./theme-loader.js";
 import { loadPrintProfile } from "./profile-loader.js";
+import { visitBlocks, visitPublication } from "./traversal.js";
 import { BOOKFORGE_VERSION, commandVersion, containedPath, run, sha256, sourceEpochDate } from "./util.js";
 
 export type Format = "web" | "epub" | "pdf";
@@ -50,8 +51,11 @@ function resolveChapterLinks(publication: Publication, projectRoot: string, chap
     if (!target) throw new Error(`Broken heading link: ${href}`);
     return target;
   };
-  const visitInlines = (inlines: Inline[], sectionId: string) => inlines.forEach((inline) => {
-    if (inline.type === "link") {
+  visitPublication(publication, {
+    inline: (inline, context) => {
+      if (inline.type !== "link") return;
+      const sectionId = context.section?.id;
+      if (!sectionId) throw new Error("Link traversal requires a publication section");
       const [file, fragment] = inline.href.split("#", 2);
       if (!file && fragment) inline.href = `#${resolveFragment(sectionId, fragment, inline.href)}`;
       else if (file && /\.md$/i.test(file)) {
@@ -60,21 +64,8 @@ function resolveChapterLinks(publication: Publication, projectRoot: string, chap
         const targetFragment = fragment ? `#${resolveFragment(targetId, fragment, inline.href)}` : "";
         inline.href = `${targetId}.md${targetFragment}`;
       }
-    }
-    if (inline.type === "footnote") visitBlocks(inline.blocks, sectionId);
-    if ("children" in inline && Array.isArray(inline.children)) visitInlines(inline.children, sectionId);
-  });
-  const visitBlocks = (blocks: Block[], sectionId: string) => blocks.forEach((block) => {
-    if (block.type === "paragraph" || block.type === "heading") visitInlines(block.children, sectionId);
-    else if (block.type === "blockquote") visitBlocks(block.blocks, sectionId);
-    else if (block.type === "list") block.items.forEach((item) => visitBlocks(item, sectionId));
-    else if (block.type === "figure") { visitInlines([block.image], sectionId); visitInlines(block.caption, sectionId); }
-    else if (block.type === "table") { block.headers.forEach((header) => visitInlines(header, sectionId)); block.rows.flat().forEach((row) => visitInlines(row, sectionId)); }
-  });
-  publication.spine.forEach((section) => {
-    visitInlines(section.title, section.id);
-    visitBlocks(section.blocks, section.id);
-  });
+    },
+  }, { includeTitles: true });
 }
 
 function normalizedProjectPath(projectRoot: string, value: string): string {
@@ -90,19 +81,11 @@ function headingTargets(section: Publication["spine"][number]): Map<string, stri
   };
   if (section.titleAnchor) register(section.titleAnchor);
   targets.set(section.id, section.id);
-  const visitInlines = (inlines: Inline[]) => inlines.forEach((inline) => {
-    if (inline.type === "footnote") visitBlocks(inline.blocks);
-    if ("children" in inline && Array.isArray(inline.children)) visitInlines(inline.children);
+  visitBlocks(section.blocks, {
+    block: (block) => {
+      if (block.type === "heading") register(block.id);
+    },
   });
-  const visitBlocks = (blocks: Block[]) => blocks.forEach((block) => {
-    if (block.type === "heading") { register(block.id); visitInlines(block.children); }
-    else if (block.type === "paragraph") visitInlines(block.children);
-    else if (block.type === "blockquote") visitBlocks(block.blocks);
-    else if (block.type === "list") block.items.forEach(visitBlocks);
-    else if (block.type === "figure") { visitInlines([block.image]); visitInlines(block.caption); }
-    else if (block.type === "table") { block.headers.forEach(visitInlines); block.rows.flat().forEach(visitInlines); }
-  });
-  visitBlocks(section.blocks);
   return targets;
 }
 
