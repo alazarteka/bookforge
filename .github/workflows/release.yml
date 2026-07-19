@@ -44,7 +44,7 @@ jobs:
           - target: darwin-arm64
             runner: macos-14
           - target: darwin-x64
-            runner: macos-13
+            runner: macos-15-intel
           - target: linux-x64-gnu
             runner: ubuntu-24.04
     runs-on: ${{ matrix.runner }}
@@ -112,7 +112,7 @@ jobs:
           chmod 755 dist/release/bookforge-install.sh
           pnpm run release:manifest -- --input dist/release --output dist/release
       - name: Attest the published bundles
-        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        uses: actions/attest@f6bf1532d7d6793fce74eac584813a8eee607999 # v4
         with:
           subject-path: |
             dist/release/*.tar.gz
