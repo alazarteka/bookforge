@@ -125,5 +125,6 @@ jobs:
             dist/release/*.tar.gz
             dist/release/*.sha256
             dist/release/*.manifest.json
+            dist/release/bookforge-release-manifest.json
             dist/release/SHA256SUMS
             dist/release/bookforge-install.sh
