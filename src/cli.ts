@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
-import { access, readFile } from "node:fs/promises";
 import path from "node:path";
-import { buildProject, createPublication, type Format } from "./build.js";
+import { buildProject, type Format } from "./build.js";
+import { checkProject } from "./check.js";
 import { doctor } from "./doctor.js";
 import { initProject } from "./init.js";
 import { previewProject } from "./preview.js";
-import { run } from "./util.js";
 
 const help = `Bookforge — beautiful local-first publishing
 
@@ -39,15 +38,8 @@ async function main(): Promise<void> {
   }
   if (command === "check") {
     const root = path.resolve(rest[0] ?? ".");
-    const { publication } = await createPublication(root);
-    const epub = path.join(root, "dist", "book.epub");
-    if (await access(epub).then(() => true).catch(() => false)) {
-      const result = await run("epubcheck", [epub], { quiet: true });
-      if (result.code !== 0) throw new Error(`Existing EPUB failed EPUBCheck:\n${result.stdout}${result.stderr}`);
-    }
-    const manifest = path.join(root, "dist", "build-manifest.json");
-    if (await access(manifest).then(() => true).catch(() => false)) JSON.parse(await readFile(manifest, "utf8"));
-    console.log(`✓ ${publication.spine.length} sections and ${publication.assets.length} assets are valid`); return;
+    const checked = await checkProject(root);
+    console.log(`✓ ${checked.sections} sections and ${checked.assets} assets are valid`); return;
   }
   if (command === "doctor") { if (!await doctor()) process.exitCode = 1; return; }
   throw new Error(`Unknown command: ${command}\n\n${help}`);

@@ -154,6 +154,15 @@ test("parseMarkdown rejects a javascript: link protocol", async () => {
   await assert.rejects(parseSource("[click me](javascript:alert(1))\n"), /unsafe link protocol/);
 });
 
+test("parseMarkdown rejects non-allowlisted and protocol-relative links", async () => {
+  await assert.rejects(parseSource("[data](data:text/html,hello)\n"), /unsafe link protocol/);
+  await assert.rejects(parseSource("[network-path](//example.com/path)\n"), /unsafe link protocol/);
+});
+
+test("parseMarkdown permits explicitly allowlisted link protocols", async () => {
+  await assert.doesNotReject(parseSource("[web](https://example.com) [mail](mailto:reader@example.com) [call](tel:+821012345678)\n"));
+});
+
 test("parseMarkdown rejects an image without alternative text", async () => {
   await assert.rejects(parseSource("![](figure.png)\n"), /images require alternative text/);
 });

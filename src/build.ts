@@ -35,33 +35,75 @@ export async function createPublication(projectRoot: string): Promise<{ publicat
     spine,
     assets: [],
   };
-  resolveChapterLinks(publication, config.chapters);
+  resolveChapterLinks(publication, projectRoot, config.chapters);
   await collectAssets(publication, projectRoot);
   hashes.push(theme.hash);
   for (const asset of [...publication.assets].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) hashes.push(asset.hash);
   return { publication, config, theme, sourceHash: sha256(hashes.join("\n\0\n")) };
 }
 
-function resolveChapterLinks(publication: Publication, chapters: Array<{ id: string; path: string }>): void {
-  const targets = new Map(chapters.map((chapter) => [chapter.path.replaceAll("\\", "/"), chapter.id]));
-  const visitInlines = (inlines: Inline[]) => inlines.forEach((inline) => {
+function resolveChapterLinks(publication: Publication, projectRoot: string, chapters: Array<{ id: string; path: string }>): void {
+  const chapterPaths = new Map(chapters.map((chapter) => [normalizedProjectPath(projectRoot, chapter.path), chapter.id]));
+  const headings = new Map(publication.spine.map((section) => [section.id, headingTargets(section)]));
+  const resolveFragment = (sectionId: string, fragment: string, href: string): string => {
+    const target = headings.get(sectionId)?.get(fragment);
+    if (!target) throw new Error(`Broken heading link: ${href}`);
+    return target;
+  };
+  const visitInlines = (inlines: Inline[], sectionId: string) => inlines.forEach((inline) => {
     if (inline.type === "link") {
       const [file, fragment] = inline.href.split("#", 2);
-      const id = file ? targets.get(file.replaceAll("\\", "/")) : undefined;
-      if (id) inline.href = `${id}.md${fragment ? `#${fragment}` : ""}`;
-      else if (file?.endsWith(".md")) throw new Error(`Broken chapter link: ${inline.href}`);
+      if (!file && fragment) inline.href = `#${resolveFragment(sectionId, fragment, inline.href)}`;
+      else if (file && /\.md$/i.test(file)) {
+        const targetId = chapterPaths.get(normalizedProjectPath(projectRoot, file));
+        if (!targetId) throw new Error(`Broken chapter link: ${inline.href}`);
+        const targetFragment = fragment ? `#${resolveFragment(targetId, fragment, inline.href)}` : "";
+        inline.href = `${targetId}.md${targetFragment}`;
+      }
     }
+    if (inline.type === "footnote") visitBlocks(inline.blocks, sectionId);
+    if ("children" in inline && Array.isArray(inline.children)) visitInlines(inline.children, sectionId);
+  });
+  const visitBlocks = (blocks: Block[], sectionId: string) => blocks.forEach((block) => {
+    if (block.type === "paragraph" || block.type === "heading") visitInlines(block.children, sectionId);
+    else if (block.type === "blockquote") visitBlocks(block.blocks, sectionId);
+    else if (block.type === "list") block.items.forEach((item) => visitBlocks(item, sectionId));
+    else if (block.type === "figure") { visitInlines([block.image], sectionId); visitInlines(block.caption, sectionId); }
+    else if (block.type === "table") { block.headers.forEach((header) => visitInlines(header, sectionId)); block.rows.flat().forEach((row) => visitInlines(row, sectionId)); }
+  });
+  publication.spine.forEach((section) => {
+    visitInlines(section.title, section.id);
+    visitBlocks(section.blocks, section.id);
+  });
+}
+
+function normalizedProjectPath(projectRoot: string, value: string): string {
+  return path.relative(projectRoot, path.resolve(projectRoot, value)).replaceAll("\\", "/");
+}
+
+function headingTargets(section: Publication["spine"][number]): Map<string, string> {
+  const targets = new Map<string, string>();
+  const register = (id: string) => {
+    const prefix = `${section.id}--`;
+    targets.set(id, id);
+    if (id.startsWith(prefix)) targets.set(id.slice(prefix.length), id);
+  };
+  if (section.titleAnchor) register(section.titleAnchor);
+  targets.set(section.id, section.id);
+  const visitInlines = (inlines: Inline[]) => inlines.forEach((inline) => {
     if (inline.type === "footnote") visitBlocks(inline.blocks);
     if ("children" in inline && Array.isArray(inline.children)) visitInlines(inline.children);
   });
   const visitBlocks = (blocks: Block[]) => blocks.forEach((block) => {
-    if (block.type === "paragraph" || block.type === "heading") visitInlines(block.children);
+    if (block.type === "heading") { register(block.id); visitInlines(block.children); }
+    else if (block.type === "paragraph") visitInlines(block.children);
     else if (block.type === "blockquote") visitBlocks(block.blocks);
     else if (block.type === "list") block.items.forEach(visitBlocks);
     else if (block.type === "figure") { visitInlines([block.image]); visitInlines(block.caption); }
     else if (block.type === "table") { block.headers.forEach(visitInlines); block.rows.flat().forEach(visitInlines); }
   });
-  publication.spine.forEach((section) => visitBlocks(section.blocks));
+  visitBlocks(section.blocks);
+  return targets;
 }
 
 export async function buildProject(project: string, requested?: Format[]): Promise<string> {
@@ -111,7 +153,7 @@ export async function buildProject(project: string, requested?: Format[]): Promi
 async function toolVersions(formats: Format[]): Promise<Record<string, string>> {
   const commands: Array<[string, string, string[]]> = [["node", "node", ["--version"]], ["pandoc", "pandoc", ["--version"]]];
   if (formats.includes("epub")) commands.push(["epubcheck", "epubcheck", ["--version"]]);
-  if (formats.includes("pdf")) commands.push(["vivliostyle", "pnpm", ["exec", "vivliostyle", "--version"]]);
+  if (formats.includes("pdf")) commands.push(["vivliostyle", path.resolve(import.meta.dirname, "..", "node_modules", ".bin", "vivliostyle"), ["--version"]]);
   const versions: Record<string, string> = {};
   for (const [key, command, args] of commands) {
     const result = await run(command, args, { cwd: path.resolve(import.meta.dirname, ".."), quiet: true });
