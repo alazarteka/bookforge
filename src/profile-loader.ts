@@ -6,9 +6,12 @@ import type { BookConfig, PrintProfile } from "./model.js";
 import { containedPath, sha256 } from "./util.js";
 
 const length = String.raw`(?:0|\d+(?:\.\d+)?(?:mm|cm|in|pt))`;
-const pageValue = z.string().regex(new RegExp(String.raw`^(?:A[345]|B[45]|JIS-B[45]|letter|legal|ledger|${length},${length})$`, "i"), "must be a supported page preset or width,height pair");
-const marginValue = z.string().regex(new RegExp(String.raw`^${length}(?:\s+${length}){0,3}$`), "must contain one to four absolute lengths");
-const bleedValue = z.string().regex(new RegExp(String.raw`^${length}$`), "must be one absolute length");
+const pageValue = z.string()
+  .regex(new RegExp(String.raw`^(?:A[345]|B[45]|JIS-B[45]|letter|legal|ledger|${length},${length})$`, "i"), "must be a supported page preset or width,height pair")
+  .refine((value) => !value.includes(",") || value.split(",").every((dimension) => Number(dimension.replace(/(?:mm|cm|in|pt)$/i, "")) > 0), "custom page dimensions must be strictly positive");
+const bareZero = z.literal(0).transform(() => "0");
+const marginValue = z.union([z.string().regex(new RegExp(String.raw`^${length}(?:\s+${length}){0,3}$`), "must contain one to four absolute lengths"), bareZero]);
+const bleedValue = z.union([z.string().regex(new RegExp(String.raw`^${length}$`), "must be one absolute length"), bareZero]);
 const profileSchema = z.object({
   schema: z.literal(1),
   id: z.string().regex(/^[a-z0-9][a-z0-9._-]*$/),

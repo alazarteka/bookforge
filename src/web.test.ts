@@ -35,3 +35,34 @@ test("reader restores a saved position before it records the initial scroll posi
   assert.ok(events.indexOf("scroll:480") !== -1, "the saved position should be restored");
   assert.ok(events.indexOf("scroll:480") < events.indexOf("set:bookforge-position:/chapters/one.html:0"), "restore must precede initial persistence");
 });
+
+for (const invalidPreferences of ["null", "[]", "true", "42"] as const) {
+  test(`reader ignores non-object saved preferences: ${invalidPreferences}`, () => {
+    const values = new Map<string, string>([["bookforge-reader", invalidPreferences]]);
+    const root = {
+      dataset: {} as Record<string, string>,
+      scrollHeight: 2000,
+      style: { fontSize: "16px", setProperty: () => undefined },
+    };
+    const context = {
+      document: {
+        documentElement: root,
+        querySelectorAll: () => [],
+        querySelector: () => null,
+      },
+      localStorage: {
+        getItem: (key: string) => values.get(key) ?? null,
+        setItem: (key: string, value: string) => values.set(key, value),
+      },
+      getComputedStyle: () => ({ fontSize: "16px", getPropertyValue: () => "42rem" }),
+      addEventListener: () => undefined,
+      scrollTo: () => undefined,
+      innerHeight: 900,
+      scrollY: 0,
+      location: { pathname: "/chapters/one.html" },
+    };
+    assert.doesNotThrow(() => vm.runInNewContext(readerJs, context));
+    assert.equal(root.dataset.theme, "sepia");
+    assert.equal(root.style.fontSize, "16px");
+  });
+}

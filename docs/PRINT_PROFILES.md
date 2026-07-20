@@ -59,8 +59,10 @@ cover: interior
 | `cover` | `interior` or `none` | `interior` |
 
 An absolute length is `0` or a decimal number followed by `mm`, `cm`, `in`, or
-`pt`. Custom pages use two absolute lengths separated by a comma, such as
-`7in,10in` or `148mm,210mm`. `margins` follow CSS shorthand order: one value
+`pt`. A bare YAML numeric `0` is accepted and normalized for `margins` and
+`bleed`; quote all other lengths. Custom pages use two strictly positive
+absolute lengths separated by a comma, such as `7in,10in` or `148mm,210mm`.
+`margins` follow CSS shorthand order: one value
 applies to every edge; two mean vertical then horizontal; three mean top,
 horizontal, bottom; and four mean top, right, bottom, left.
 

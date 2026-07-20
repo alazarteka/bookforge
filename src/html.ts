@@ -1,5 +1,5 @@
 import type { Asset, Block, Inline, OutputFlavor, Publication, Section } from "./model.js";
-import { visitBlocks } from "./traversal.js";
+import { visitSection } from "./traversal.js";
 import { escapeHtml, inlineText } from "./util.js";
 
 export interface HtmlContext {
@@ -62,9 +62,9 @@ export function renderBlocks(blocks: Block[], context: HtmlContext): string {
   }).join("\n");
 }
 
-const collectFootnotes = (blocks: Block[]): Array<Extract<Inline, { type: "footnote" }>> => {
+const collectFootnotes = (section: Section): Array<Extract<Inline, { type: "footnote" }>> => {
   const notes: Array<Extract<Inline, { type: "footnote" }>> = [];
-  visitBlocks(blocks, {
+  visitSection(section, {
     inline: (inline) => {
       if (inline.type === "footnote") notes.push(inline);
     },
@@ -143,5 +143,5 @@ export function sectionArticle(section: Section, publication: Publication, conte
   } else {
     prose = renderBlocks(section.blocks, context);
   }
-  return `<article class="chapter ${section.role}" id="${escapeHtml(section.id)}">${header}<div class="prose">${prose}${renderFootnotes(collectFootnotes(section.blocks), context)}</div></article>`;
+  return `<article class="chapter ${section.role}" id="${escapeHtml(section.id)}">${header}<div class="prose">${prose}${renderFootnotes(collectFootnotes(section), context)}</div></article>`;
 }

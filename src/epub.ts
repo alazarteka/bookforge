@@ -39,8 +39,9 @@ export async function renderEpub(publication: Publication, theme: PublicationThe
     }
     await writeFile(path.join(epubDir, "cover.xhtml"), xhtml("Cover", publication.metadata.language, coverMarkup(publication)));
     const navItems = publication.spine.map((section) => `<li><a href="${section.id}.xhtml">${escapeXml(inlineText(section.title))}</a></li>`).join("");
-    const beginReading = publication.spine.find((s) => s.role === "bodymatter")?.id ?? publication.spine[0]!.id;
-    const nav = xhtml("Contents", publication.metadata.language, `<nav epub:type="toc" id="toc"><h1>Contents</h1><ol>${navItems}</ol></nav><nav epub:type="landmarks" hidden="hidden"><ol><li><a epub:type="cover" href="cover.xhtml">Cover</a></li><li><a epub:type="bodymatter" href="${beginReading}.xhtml">Begin reading</a></li></ol></nav>`);
+    const beginReading = publication.spine.find((section) => section.role === "bodymatter");
+    const beginReadingLandmark = beginReading ? `<li><a epub:type="bodymatter" href="${beginReading.id}.xhtml">Begin reading</a></li>` : "";
+    const nav = xhtml("Contents", publication.metadata.language, `<nav epub:type="toc" id="toc"><h1>Contents</h1><ol>${navItems}</ol></nav><nav epub:type="landmarks" hidden="hidden"><ol><li><a epub:type="cover" href="cover.xhtml">Cover</a></li>${beginReadingLandmark}</ol></nav>`);
     await writeFile(path.join(epubDir, "nav.xhtml"), nav);
     const manifestChapters = publication.spine.map((section) => `<item id="item-${section.id}" href="${section.id}.xhtml" media-type="application/xhtml+xml"${svgSections.has(section.id) ? ` properties="svg"` : ""}/>`).join("");
     const manifestAssets = publication.assets.map((asset) => `<item id="${asset.id}" href="assets/${asset.outputName}" media-type="${asset.mediaType}"/>`).join("");

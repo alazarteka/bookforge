@@ -32,6 +32,37 @@ test("builds accessible web and conforming EPUB outputs", async () => {
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+test("packages images and endnotes from extracted chapter titles", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-title-inlines-"));
+  try {
+    await cp(fixture, root, { recursive: true });
+    await writeFile(path.join(root, "chapters", "01-threshold.md"), "# Threshold ![Title marker](../assets/marker.png)[^title-note]\n\n[^title-note]: A note attached to the title.\n\nBody text.\n");
+    await buildProject(root, ["web", "epub"]);
+
+    const web = await readFile(path.join(root, "dist", "web", "chapters", "threshold.html"), "utf8");
+    assert.match(web, /<img src="\.\.\/assets\/[a-f0-9]{12}-marker\.png" alt="Title marker"/);
+    assert.match(web, /<section class="footnotes"[^>]*>.*A note attached to the title\./s);
+
+    const epub = path.join(root, "dist", "book.epub");
+    const epubChapter = (await execFileAsync("unzip", ["-p", epub, "EPUB/threshold.xhtml"])).stdout.toString();
+    assert.match(epubChapter, /<img src="assets\/[a-f0-9]{12}-marker\.png" alt="Title marker"/);
+    assert.match(epubChapter, /<section class="footnotes"[^>]*>.*A note attached to the title\./s);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
+test("EPUB omits the bodymatter landmark when the publication has no bodymatter", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-epub-landmarks-"));
+  try {
+    await cp(fixture, root, { recursive: true });
+    const manifest = await readFile(path.join(root, "book.yaml"), "utf8");
+    await writeFile(path.join(root, "book.yaml"), manifest.replace("    role: bodymatter", "    role: frontmatter"));
+    await buildProject(root, ["epub"]);
+    const nav = (await execFileAsync("unzip", ["-p", path.join(root, "dist", "book.epub"), "EPUB/nav.xhtml"])).stdout.toString();
+    assert.match(nav, /epub:type="cover"/);
+    assert.doesNotMatch(nav, /epub:type="bodymatter"/);
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test("resolves same- and cross-chapter heading links in every renderer", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "bookforge-links-"));
   try {

@@ -1,11 +1,56 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { EventEmitter } from "node:events";
+import type { Server } from "node:http";
+import type { FSWatcher } from "node:fs";
 import { access, cp, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { generateBuiltInThemePreviews, rebuildPreview } from "./preview.js";
+import { generateBuiltInThemePreviews, listenPreviewServer, previewContentType, rebuildPreview, shouldRebuildPreview, stopPreviewServer, stopPreviewWatcher } from "./preview.js";
 
 const fixture = path.resolve(import.meta.dirname, "..", "tests", "fixtures", "synthetic");
+
+test("preview watches supported source assets and serves them with their media types", () => {
+  assert.equal(shouldRebuildPreview("theme/fonts/reader.woff2"), true);
+  assert.equal(shouldRebuildPreview("theme/fonts/reader.otf"), true);
+  assert.equal(shouldRebuildPreview("assets/animation.gif"), true);
+  assert.equal(shouldRebuildPreview(".bookforge-preview/reader.css"), false);
+  assert.equal(previewContentType("reader.woff2"), "font/woff2");
+  assert.equal(previewContentType("reader.ttf"), "font/ttf");
+  assert.equal(previewContentType("animation.gif"), "image/gif");
+});
+
+test("preview listener rejects asynchronous listen errors", async () => {
+  const server = new EventEmitter() as EventEmitter & { listen: () => void };
+  server.listen = () => queueMicrotask(() => server.emit("error", Object.assign(new Error("port already in use"), { code: "EADDRINUSE" })));
+  await assert.rejects(listenPreviewServer(server as unknown as Server, 4173), (error: NodeJS.ErrnoException) => error.code === "EADDRINUSE");
+});
+
+test("preview listener keeps a runtime error handler after startup", async (t) => {
+  const server = new EventEmitter() as EventEmitter & { close: () => void; listen: () => void };
+  let serverClosed = false;
+  let watcherClosed = false;
+  const messages: unknown[][] = [];
+  const watcher = { close: () => { watcherClosed = true; } } as Pick<FSWatcher, "close">;
+  t.mock.method(console, "error", (...args: unknown[]) => { messages.push(args); });
+  server.listen = () => queueMicrotask(() => server.emit("listening"));
+  server.close = () => { serverClosed = true; };
+  const onRuntimeError = (error: Error) => stopPreviewServer(server as unknown as Pick<Server, "close">, watcher, error);
+  await listenPreviewServer(server as unknown as Server, 4173, onRuntimeError);
+  server.emit("error", new Error("socket failed"));
+  assert.equal(serverClosed, true);
+  assert.equal(watcherClosed, true);
+  assert.match(messages.flat().join(" "), /preview server failed; preview stopped: socket failed/);
+});
+
+test("preview stops live rebuilding and reports watcher failures", (t) => {
+  let closed = false;
+  const messages: unknown[][] = [];
+  t.mock.method(console, "error", (...args: unknown[]) => { messages.push(args); });
+  stopPreviewWatcher({ close: () => { closed = true; } } as Pick<FSWatcher, "close">, new Error("too many files"));
+  assert.equal(closed, true);
+  assert.match(messages.flat().join(" "), /preview watcher failed; live rebuilding stopped: too many files/);
+});
 
 test("preview rebuild replaces output and removes its staging directory", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "bookforge-preview-"));

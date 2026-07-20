@@ -1,5 +1,5 @@
-import { watch } from "node:fs";
-import { createServer } from "node:http";
+import { watch, type FSWatcher } from "node:fs";
+import { createServer, type Server } from "node:http";
 import { mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createPublication } from "./build.js";
@@ -7,7 +7,62 @@ import { renderWeb } from "./web.js";
 import { listBuiltInThemes, loadBuiltInTheme } from "./theme-loader.js";
 import { containedPath, escapeHtml } from "./util.js";
 
-const types: Record<string, string> = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
+const types: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+  ".woff2": "font/woff2",
+  ".woff": "font/woff",
+  ".otf": "font/otf",
+  ".ttf": "font/ttf",
+};
+
+export function previewContentType(file: string): string {
+  return types[path.extname(file).toLowerCase()] ?? "application/octet-stream";
+}
+
+export function shouldRebuildPreview(filename: string): boolean {
+  const normalized = filename.replaceAll("\\", "/");
+  if (normalized.startsWith("dist/") || normalized.startsWith(".bookforge-")) return false;
+  return /\.(md|ya?ml|css|jpe?g|png|webp|gif|woff2?|otf|ttf)$/i.test(normalized);
+}
+
+export async function listenPreviewServer(server: Server, port: number, onRuntimeError?: (error: Error) => void): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const onListening = () => {
+      cleanup();
+      if (onRuntimeError) server.on("error", onRuntimeError);
+      resolve();
+    };
+    const onError = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+    const cleanup = () => {
+      server.off("listening", onListening);
+      server.off("error", onError);
+    };
+    server.once("listening", onListening);
+    server.once("error", onError);
+    server.listen(port, "127.0.0.1");
+  });
+}
+
+export function stopPreviewWatcher(watcher: Pick<FSWatcher, "close">, error: unknown): void {
+  watcher.close();
+  console.error(`[bookforge] preview watcher failed; live rebuilding stopped: ${error instanceof Error ? error.message : String(error)}`);
+}
+
+export function stopPreviewServer(server: Pick<Server, "close">, watcher: Pick<FSWatcher, "close">, error: unknown): void {
+  watcher.close();
+  server.close();
+  console.error(`[bookforge] preview server failed; preview stopped: ${error instanceof Error ? error.message : String(error)}`);
+}
 
 export async function previewProject(project: string, port = 4173, themeOverride?: string): Promise<void> {
   const root = path.resolve(project);
@@ -20,26 +75,32 @@ export async function previewProject(project: string, port = 4173, themeOverride
     catch (error) { console.error(`[bookforge] rebuild failed: ${error instanceof Error ? error.message : String(error)}`); }
     finally { building = false; if (queued) { queued = false; void rebuild(); } }
   };
-  await rebuild();
-  const webRoot = path.join(root, ".bookforge-preview");
-  const server = createServer(async (request, response) => {
-    try {
-      const rawPath = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
-      const relative = rawPath === "/" ? "index.html" : rawPath.replace(/^\//, "");
-      let file = containedPath(webRoot, relative);
-      if ((await stat(file).catch(() => undefined))?.isDirectory()) file = path.join(file, "index.html");
-      const data = await readFile(file);
-      response.writeHead(200, { "content-type": types[path.extname(file)] ?? "application/octet-stream", "cache-control": "no-store" });
-      response.end(data);
-    } catch {
-      response.writeHead(404, { "content-type": "text/plain; charset=utf-8" }); response.end("Not found");
-    }
+  const watcher = watch(root, { recursive: true }, (_event, filename) => {
+    if (filename && shouldRebuildPreview(filename)) void rebuild();
   });
-  server.listen(port, "127.0.0.1", () => console.log(`[bookforge] preview: http://127.0.0.1:${port}`));
-  watch(root, { recursive: true }, (_event, filename) => {
-    if (!filename || filename.startsWith("dist/") || filename.startsWith(".bookforge-")) return;
-    if (/\.(md|ya?ml|css|jpe?g|png|webp|gif)$/i.test(filename)) void rebuild();
-  });
+  watcher.on("error", (error) => stopPreviewWatcher(watcher, error));
+  try {
+    await rebuild();
+    const webRoot = path.join(root, ".bookforge-preview");
+    const server = createServer(async (request, response) => {
+      try {
+        const rawPath = decodeURIComponent(new URL(request.url ?? "/", "http://localhost").pathname);
+        const relative = rawPath === "/" ? "index.html" : rawPath.replace(/^\//, "");
+        let file = containedPath(webRoot, relative);
+        if ((await stat(file).catch(() => undefined))?.isDirectory()) file = path.join(file, "index.html");
+        const data = await readFile(file);
+        response.writeHead(200, { "content-type": previewContentType(file), "cache-control": "no-store" });
+        response.end(data);
+      } catch {
+        response.writeHead(404, { "content-type": "text/plain; charset=utf-8" }); response.end("Not found");
+      }
+    });
+    await listenPreviewServer(server, port, (error) => stopPreviewServer(server, watcher, error));
+    console.log(`[bookforge] preview: http://127.0.0.1:${port}`);
+  } catch (error) {
+    watcher.close();
+    throw error;
+  }
 }
 
 export async function rebuildPreview(root: string, render: typeof renderWeb = renderWeb, themeOverride?: string): Promise<void> {

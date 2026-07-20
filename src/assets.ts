@@ -13,7 +13,7 @@ export async function collectAssets(publication: Publication, projectRoot: strin
     inline: (inline) => {
       if (inline.type === "image") refs.push({ src: inline.src, assign: (assetId) => { inline.assetId = assetId; } });
     },
-  }, { includeTitles: false });
+  });
   const known = new Map<string, Asset>();
   for (const ref of refs) {
     const sourcePath = containedPath(projectRoot, ref.src);

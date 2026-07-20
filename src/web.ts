@@ -6,13 +6,22 @@ import { themeCss, writeThemeAssets } from "./theme-loader.js";
 import { escapeHtml, inlineText } from "./util.js";
 import { writeAssets } from "./assets.js";
 
-export const readerJs = `
-(() => {
+// This is emitted both before the stylesheet and in reader.js. Keeping it in one
+// template prevents a malformed saved preference from making either path throw.
+const readerPreferenceBootstrapJs = `
   const root = document.documentElement;
-  let saved = {}; try { saved = JSON.parse(localStorage.getItem("bookforge-reader") || "{}"); } catch {}
+  let saved = {};
+  try {
+    const parsed = JSON.parse(localStorage.getItem("bookforge-reader") || "{}");
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) saved = parsed;
+  } catch {}
   root.dataset.theme = saved.theme || "sepia";
   if (saved.size) root.style.fontSize = saved.size + "px";
-  if (saved.width) root.style.setProperty("--measure", saved.width + "rem");
+  if (saved.width) root.style.setProperty("--measure", saved.width + "rem");`;
+
+export const readerJs = `
+(() => {
+  ${readerPreferenceBootstrapJs}
   const measure = () => parseFloat(getComputedStyle(root).getPropertyValue("--measure"));
   const persist = () => localStorage.setItem("bookforge-reader", JSON.stringify({ theme: root.dataset.theme, size: parseFloat(getComputedStyle(root).fontSize), width: measure() }));
   const swatches = [...document.querySelectorAll("[data-theme-set]")];
@@ -53,7 +62,7 @@ function tocSection(publication: Publication, kickers: Map<string, string>, href
 }
 
 function documentShell(title: string, language: string, body: string, cssHref: string, scriptHref?: string): string {
-  return `<!doctype html><html lang="${escapeHtml(language)}" data-theme="sepia"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>${escapeHtml(title)}</title><script>(()=>{const root=document.documentElement;let saved={};try{saved=JSON.parse(localStorage.getItem("bookforge-reader")||"{}")}catch{}root.dataset.theme=saved.theme||"sepia";if(saved.size)root.style.fontSize=saved.size+"px";if(saved.width)root.style.setProperty("--measure",saved.width+"rem")})();</script><link rel="stylesheet" href="${cssHref}"></head><body>${body}${scriptHref ? `<script src="${scriptHref}"></script>` : ""}</body></html>`;
+  return `<!doctype html><html lang="${escapeHtml(language)}" data-theme="sepia"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>${escapeHtml(title)}</title><script>(()=>{${readerPreferenceBootstrapJs}})();</script><link rel="stylesheet" href="${cssHref}"></head><body>${body}${scriptHref ? `<script src="${scriptHref}"></script>` : ""}</body></html>`;
 }
 
 export type WebReading = "paged" | "continuous";

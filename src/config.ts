@@ -26,7 +26,7 @@ export const bookConfigSchema = z.object({
   outputs: z.object({
     web: z.object({ reading: z.enum(["paged", "continuous"]).default("paged") }).strict().optional(),
     epub: emptyObject.optional(),
-    pdf: z.object({ profile: identifier.optional(), page: z.string().min(1).optional(), margins: z.string().min(1).optional() }).strict().optional(),
+    pdf: z.object({ profile: identifier.optional(), page: z.string().min(1).optional(), margins: z.union([z.string().min(1), z.literal(0).transform(() => "0")]).optional() }).strict().optional(),
   }).strict().refine((outputs) => Object.keys(outputs).length > 0, "at least one output is required"),
 }).strict();
 
