@@ -17,7 +17,14 @@ for (const file of manifests) {
   const manifest = JSON.parse(await readFile(path.join(input, file), "utf8"));
   if (manifest.version !== version || !Object.hasOwn(releaseTargets, manifest.target)) continue;
   const expectedAsset = releaseAssetName(version, manifest.target);
-  if (manifest.asset !== expectedAsset || typeof manifest.sha256 !== "string") throw new Error(`Invalid target manifest: ${file}`);
+  if (manifest.asset !== expectedAsset || typeof manifest.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(manifest.sha256)) {
+    throw new Error(`Invalid target manifest: ${file}`);
+  }
+  const archive = path.join(input, expectedAsset);
+  const archiveExists = await access(archive).then(() => true).catch(() => false);
+  if (!archiveExists) throw new Error(`Missing release archive: ${expectedAsset}`);
+  const archiveSha256 = await sha256File(archive);
+  if (archiveSha256 !== manifest.sha256) throw new Error(`Checksum mismatch for release archive: ${expectedAsset}`);
   targets[manifest.target] = { asset: manifest.asset, sha256: manifest.sha256, requirements: manifest.requirements };
 }
 
