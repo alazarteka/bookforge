@@ -35,18 +35,15 @@ jobs:
         run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Install supported-target prerequisites
         run: bash scripts/release/install-prerequisites.sh ${{ matrix.target }}
-      - name: Build the CLI and verify the installed toolchain
-        run: |
-          pnpm run build
-          node lib/cli.js doctor
       - name: Verify release metadata and dependency advisories
         run: |
           pnpm run release:verify
           pnpm run security:audit
-      - name: Run web, EPUB, PDF, and every print-profile check
+      - name: Run web, EPUB, PDF, and every print-profile check, then verify the installed toolchain
         run: |
           pnpm run check
           pnpm run profiles:verify
+          node lib/cli.js doctor
       - name: Build and smoke-test a production-only release bundle
         run: |
           VERSION=$(node -p 'require("./package.json").version')
