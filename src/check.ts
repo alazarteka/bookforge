@@ -73,7 +73,15 @@ export async function checkProject(project: string, options: CheckOptions = {}):
     });
   }
 
-  if (configuredFormats.includes("web")) await checkWeb(dist, publication.spine.map((section) => section.id), config.outputs.web?.reading ?? "paged");
+  if (configuredFormats.includes("web")) {
+    await checkWeb(
+      dist,
+      publication.spine.map((section) => section.id),
+      config.outputs.web?.reading ?? "paged",
+      publication.assets.map((asset) => asset.outputName),
+      theme.assets.map((asset) => asset.outputName),
+    );
+  }
   if (configuredFormats.includes("epub")) await checkEpub(path.join(dist, "book.epub"));
   if (configuredFormats.includes("pdf")) await checkPdf(path.join(dist, "book.pdf"));
   return { sections: publication.spine.length, assets: publication.assets.length };
@@ -92,12 +100,14 @@ async function loadManifest(file: string): Promise<CheckedManifest> {
   return result.data;
 }
 
-async function checkWeb(dist: string, sectionIds: string[], reading: "paged" | "continuous"): Promise<void> {
+async function checkWeb(dist: string, sectionIds: string[], reading: "paged" | "continuous", assetNames: string[], themeAssetNames: string[]): Promise<void> {
   const web = path.join(dist, "web");
   await Promise.all([
     requireFile(path.join(web, "index.html"), "Web index"),
     requireFile(path.join(web, "reader.css"), "Web stylesheet"),
     requireFile(path.join(web, "reader.js"), "Web reader script"),
+    ...assetNames.map((name) => requireFile(path.join(web, "assets", name), `Web asset ${name}`)),
+    ...themeAssetNames.map((name) => requireFile(path.join(web, "theme-assets", name), `Web theme asset ${name}`)),
   ]);
   if (reading === "paged") await Promise.all(sectionIds.map((id) => requireFile(path.join(web, "chapters", `${id}.html`), `Web chapter ${id}`)));
 }
