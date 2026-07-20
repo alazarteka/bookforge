@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
 import path from "node:path";
-import { buildProject, type Format } from "./build.js";
+import { buildProject } from "./build.js";
 import { checkProject } from "./check.js";
 import { doctor } from "./doctor.js";
 import { importedChapterCount, initProject } from "./init.js";
@@ -46,7 +46,7 @@ async function main(): Promise<void> {
   }
   if (command === "build") {
     const parsed = parseArgs({ args: rest, allowPositionals: true, options: { format: { type: "string" }, theme: { type: "string" } } });
-    const formats = parsed.values.format?.split(",").filter(Boolean) as Format[] | undefined;
+    const formats = parsed.values.format?.split(",").filter(Boolean);
     const destination = await buildProject(parsed.positionals[0] ?? ".", formats, parsed.values.theme);
     console.log(`Built ${destination}`); return;
   }

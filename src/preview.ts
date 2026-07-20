@@ -91,8 +91,17 @@ export async function previewProject(project: string, port = 4173, themeOverride
         const data = await readFile(file);
         response.writeHead(200, { "content-type": previewContentType(file), "cache-control": "no-store" });
         response.end(data);
-      } catch {
-        response.writeHead(404, { "content-type": "text/plain; charset=utf-8" }); response.end("Not found");
+      } catch (error) {
+        if (isPreviewMissing(error)) {
+          response.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
+          response.end("Not found");
+          return;
+        }
+        console.error(`[bookforge] preview request failed: ${error instanceof Error ? error.message : String(error)}`);
+        if (!response.headersSent) {
+          response.writeHead(500, { "content-type": "text/plain; charset=utf-8" });
+          response.end("Internal server error");
+        }
       }
     });
     await listenPreviewServer(server, port, (error) => stopPreviewServer(server, watcher, error));
@@ -147,6 +156,16 @@ export async function generateBuiltInThemePreviews(root: string, render: typeof 
     await rm(stage, { recursive: true, force: true });
     throw error;
   }
+}
+
+function isPreviewMissing(error: unknown): boolean {
+  if (error instanceof URIError) return true;
+  if (error instanceof Error) {
+    const message = error.message;
+    if (message.startsWith("Absolute paths are not allowed:") || message.startsWith("Path escapes project root")) return true;
+  }
+  const code = typeof error === "object" && error && "code" in error ? String((error as NodeJS.ErrnoException).code) : "";
+  return code === "ENOENT" || code === "ENOTDIR";
 }
 
 function themePreviewIndex(themes: Awaited<ReturnType<typeof listBuiltInThemes>>): string {

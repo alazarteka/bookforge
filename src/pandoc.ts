@@ -141,20 +141,32 @@ function adaptBlock(node: PandocNode, state: State): Block {
 }
 
 function adaptTable(value: unknown, state: State): Block {
-  const parts = value as unknown[];
-  const head = parts[3] as [unknown, unknown[]];
-  const bodies = parts[4] as Array<[unknown, number, unknown[], unknown[]]>;
+  if (!Array.isArray(value) || value.length < 5) throw new Error(`${state.chapterId}: malformed table`);
+  const head = value[3];
+  const bodies = value[4];
+  if (!Array.isArray(head) || !Array.isArray(head[1])) throw new Error(`${state.chapterId}: malformed table head`);
+  if (!Array.isArray(bodies)) throw new Error(`${state.chapterId}: malformed table body`);
   const cellInlines = (cell: unknown): Inline[] => {
-    const [, , rowSpan, colSpan, blocks] = cell as [unknown, unknown, number, number, PandocNode[]];
+    if (!Array.isArray(cell) || cell.length < 5) throw new Error(`${state.chapterId}: malformed table cell`);
+    const rowSpan = cell[2];
+    const colSpan = cell[3];
+    const blocks = cell[4];
     if (rowSpan !== 1 || colSpan !== 1) throw new Error(`${state.chapterId}: spanning table cells are not supported`);
+    if (!Array.isArray(blocks)) throw new Error(`${state.chapterId}: malformed table cell`);
     const adapted = adaptBlocks(blocks, state);
     const first = adapted[0];
     if (adapted.length !== 1 || first?.type !== "paragraph") throw new Error(`${state.chapterId}: table cells must contain one simple paragraph`);
     return first.children;
   };
-  const rowCells = (row: unknown): Inline[][] => ((row as [unknown, unknown[]])[1] ?? []).map(cellInlines);
-  const headerRows = head?.[1] ?? [];
+  const rowCells = (row: unknown): Inline[][] => {
+    if (!Array.isArray(row) || !Array.isArray(row[1])) throw new Error(`${state.chapterId}: malformed table row`);
+    return row[1].map(cellInlines);
+  };
+  const headerRows = head[1] as unknown[];
   const headers = headerRows[0] ? rowCells(headerRows[0]) : [];
-  const rows = bodies.flatMap((body) => [...body[2], ...body[3]]).map(rowCells);
+  const rows = (bodies as Array<[unknown, number, unknown[], unknown[]]>).flatMap((body) => {
+    if (!Array.isArray(body[2]) || !Array.isArray(body[3])) throw new Error(`${state.chapterId}: malformed table body`);
+    return [...body[2], ...body[3]];
+  }).map(rowCells);
   return { type: "table", headers, rows };
 }

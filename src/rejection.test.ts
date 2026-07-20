@@ -7,7 +7,6 @@ import { containedPath } from "./util.js";
 import { bookConfigSchema, loadConfig } from "./config.js";
 import { parseMarkdown } from "./pandoc.js";
 import { buildProject, createPublication } from "./build.js";
-import type { Format } from "./build.js";
 
 // Bookforge's principle (docs/SCOPE.md §2, §5, §10): unsupported or unsafe input
 // must fail with a useful diagnostic rather than silently degrading. These tests
@@ -192,7 +191,7 @@ test("buildProject rejects an unknown output format", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "bookforge-reject-fmt-"));
   try {
     await cp(fixture, root, { recursive: true });
-    await assert.rejects(buildProject(root, ["bogus"] as unknown as Format[]), /Unknown formats/);
+    await assert.rejects(buildProject(root, ["bogus"]), /Unknown formats/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
