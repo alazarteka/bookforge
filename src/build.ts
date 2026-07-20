@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { BuildManifest, Publication } from "./model.js";
 import { loadConfig } from "./config.js";
@@ -11,7 +11,7 @@ import { loadTheme } from "./theme-loader.js";
 import { loadPrintProfile } from "./profile-loader.js";
 import { rewriteChapterLinks } from "./links.js";
 import { projectToolExecutable } from "./tool-paths.js";
-import { BOOKFORGE_VERSION, commandVersion, containedPath, run, sha256, sourceEpochDate } from "./util.js";
+import { BOOKFORGE_VERSION, atomicReplaceDirectory, commandVersion, containedPath, run, sha256, sourceEpochDate } from "./util.js";
 
 export type Format = "web" | "epub" | "pdf";
 
@@ -81,11 +81,7 @@ export async function buildProject(project: string, requested?: string[], themeO
     };
     await writeFile(path.join(stage, "build-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
     const destination = path.join(projectRoot, "dist");
-    const backup = path.join(projectRoot, ".bookforge-previous-dist");
-    await rm(backup, { recursive: true, force: true });
-    await rename(destination, backup).catch(() => undefined);
-    try { await rename(stage, destination); } catch (error) { await rename(backup, destination).catch(() => undefined); throw error; }
-    await rm(backup, { recursive: true, force: true });
+    await atomicReplaceDirectory(stage, destination, path.join(projectRoot, ".bookforge-previous-dist"));
     return destination;
   } catch (error) {
     await rm(stage, { recursive: true, force: true });

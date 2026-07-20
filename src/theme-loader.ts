@@ -3,6 +3,7 @@ import path from "node:path";
 import YAML from "yaml";
 import { z } from "zod";
 import type { PublicationTheme, ThemeAsset } from "./model.js";
+import { mediaTypeFor } from "./media-types.js";
 import { containedPath, fileHash, sha256 } from "./util.js";
 
 const themeManifestSchema = z.object({
@@ -17,10 +18,6 @@ const themeManifestSchema = z.object({
   assets: z.array(z.string().min(1)).default([]),
 }).strict();
 
-const mediaTypes: Record<string, string> = {
-  ".woff2": "font/woff2", ".woff": "font/woff", ".otf": "font/otf", ".ttf": "font/ttf",
-  ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif",
-};
 const stringUrlFunctions = new Set(["image", "src"]);
 const imageSetFunctions = new Set(["image-set", "-webkit-image-set"]);
 
@@ -117,7 +114,7 @@ async function loadThemeCandidates(
       if (assetNameKeys.has(outputNameKey)) throw new Error(`Theme assets must have unique filenames, ignoring case: ${outputName}`);
       assetNames.add(outputName);
       assetNameKeys.add(outputNameKey);
-      const mediaType = mediaTypes[path.extname(outputName).toLowerCase()];
+      const mediaType = mediaTypeFor(path.extname(outputName));
       if (!mediaType) throw new Error(`Unsupported theme asset format: ${relative}`);
       assets.push({ sourcePath, outputName, mediaType, hash: await fileHash(sourcePath) });
     }
