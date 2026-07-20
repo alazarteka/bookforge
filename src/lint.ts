@@ -5,6 +5,7 @@ import type { z } from "zod";
 import { bookConfigSchema } from "./config.js";
 import type { Inline, Section } from "./model.js";
 import { parseMarkdown } from "./pandoc.js";
+import { collectLinkIssues } from "./links.js";
 import { visitSection } from "./traversal.js";
 import { containedPath, ensureFile } from "./util.js";
 
@@ -67,32 +68,10 @@ export async function lintProject(project: string): Promise<LintResult> {
     }
   }));
   const sections = parsedChapters.filter((entry): entry is { chapter: (typeof usable)[number]; section: Section } => Boolean(entry));
-  lintLinks(root, sections, issues);
+  issues.push(...collectLinkIssues(root, sections));
   await lintImages(root, sections, issues);
 
   return { issues: sortIssues(issues), chapters: config.chapters.length };
-}
-
-function lintLinks(root: string, sections: Array<{ chapter: { id: string; path: string }; section: Section }>, issues: LintIssue[]): void {
-  const byPath = new Map(sections.map(({ chapter }) => [normalizedProjectPath(root, chapter.path), chapter.id]));
-  const headings = new Map(sections.map(({ section }) => [section.id, headingTargets(section)]));
-  for (const { chapter, section } of sections) {
-    visitSection(section, { inline: (inline) => {
-      if (inline.type !== "link") return;
-      const [file, fragment] = inline.href.split("#", 2);
-      let target = section.id;
-      if (file && /\.md$/i.test(file)) {
-        target = byPath.get(normalizedProjectPath(root, file)) ?? "";
-        if (!target) {
-          issues.push({ file: chapter.path, message: `Broken chapter link "${inline.href}". Add that chapter to book.yaml or correct the link.` });
-          return;
-        }
-      }
-      if (fragment && (!file || /\.md$/i.test(file)) && !headings.get(target)?.has(fragment)) {
-        issues.push({ file: chapter.path, message: `Broken heading link "${inline.href}". Use a heading id that exists in the target chapter.` });
-      }
-    } }, { includeTitles: true });
-  }
 }
 
 async function lintImages(root: string, sections: Array<{ chapter: { path: string }; section: Section }>, issues: LintIssue[]): Promise<void> {
@@ -118,22 +97,6 @@ async function lintImages(root: string, sections: Array<{ chapter: { path: strin
       }
     }
   }));
-}
-
-function headingTargets(section: Section): Set<string> {
-  const targets = new Set<string>([section.id]);
-  const register = (id: string) => {
-    targets.add(id);
-    const prefix = `${section.id}--`;
-    if (id.startsWith(prefix)) targets.add(id.slice(prefix.length));
-  };
-  if (section.titleAnchor) register(section.titleAnchor);
-  visitSection(section, { block: (block) => { if (block.type === "heading") register(block.id); } }, { includeTitles: false });
-  return targets;
-}
-
-function normalizedProjectPath(root: string, value: string): string {
-  return path.relative(root, path.resolve(root, value)).replaceAll("\\", "/");
 }
 
 function issuePath(issue: z.core.$ZodIssue): string {
