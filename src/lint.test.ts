@@ -112,3 +112,32 @@ test("lint reports broken same- and cross-chapter heading fragments", async () =
     assert.ok(result.issues.some((issue) => /Broken heading link "chapters\/02-two\.md#no-such-id"/.test(issue.message)));
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test("lint does not report a configured but unparseable link target as missing", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-lint-unparseable-link-"));
+  try {
+    await mkdir(path.join(root, "chapters"));
+    await writeFile(path.join(root, "book.yaml"), [
+      "schema: 1",
+      "id: book",
+      "title: A Book",
+      "authors:",
+      "  - name: Author",
+      "chapters:",
+      "  - id: source",
+      "    path: chapters/01-source.md",
+      "  - id: target",
+      "    path: chapters/02-target.md",
+      "outputs:",
+      "  web: {}",
+      "",
+    ].join("\n"));
+    await writeFile(path.join(root, "chapters", "01-source.md"), "# Source\n\n[Target](02-target.md#section)\n");
+    await writeFile(path.join(root, "chapters", "02-target.md"), "<div>unsupported</div>\n");
+
+    const result = await lintProject(root);
+    assert.equal(result.issues.length, 1);
+    assert.match(result.issues[0]?.message ?? "", /raw HTML is not supported/);
+    assert.ok(!result.issues.some((issue) => /Broken (chapter|heading) link/.test(issue.message)));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});

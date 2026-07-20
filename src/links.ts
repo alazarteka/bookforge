@@ -55,9 +55,10 @@ export function rewriteChapterLinks(
 export function collectLinkIssues(
   root: string,
   sections: Array<{ chapter: { id: string; path: string }; section: Section }>,
+  chapters: Array<{ id: string; path: string }> = sections.map(({ chapter }) => chapter),
 ): Array<{ file: string; message: string }> {
   const issues: Array<{ file: string; message: string }> = [];
-  const byPath = new Map(sections.map(({ chapter }) => [normalizedProjectPath(root, chapter.path), chapter.id]));
+  const byPath = new Map(chapters.map((chapter) => [normalizedProjectPath(root, chapter.path), chapter.id]));
   const headings = new Map(sections.map(({ section }) => [section.id, headingTargets(section)]));
   for (const { chapter, section } of sections) {
     visitSection(section, {
@@ -72,7 +73,7 @@ export function collectLinkIssues(
             return;
           }
         }
-        if (fragment && (!file || /\.md$/i.test(file)) && !headings.get(target)?.has(fragment)) {
+        if (fragment && (!file || /\.md$/i.test(file)) && headings.has(target) && !headings.get(target)?.has(fragment)) {
           issues.push({ file: chapter.path, message: `Broken heading link "${inline.href}". Use a heading id that exists in the target chapter.` });
         }
       },

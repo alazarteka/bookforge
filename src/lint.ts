@@ -95,7 +95,7 @@ export async function lintProject(project: string, options: LintOptions = {}): P
     }
   });
   const sections = parsedChapters.filter((entry): entry is { chapter: UsableChapter; section: Section } => Boolean(entry));
-  issues.push(...collectLinkIssues(root, sections));
+  issues.push(...collectLinkIssues(root, sections, usable));
   await lintImages(root, sections, issues);
   for (const { chapter, section } of sections) {
     if (options.ship && chapter.status === "draft") {
