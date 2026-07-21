@@ -3,18 +3,33 @@ import path from "node:path";
 import YAML from "yaml";
 import type { z } from "zod";
 import { bookConfigSchema } from "./config.js";
-import type { Inline, Section } from "./model.js";
+import type { ChapterLayout, ChapterStatus, Inline, Section } from "./model.js";
 import { parseMarkdown } from "./pandoc.js";
 import { collectLinkIssues } from "./links.js";
 import { IMAGE_EXTENSIONS } from "./media-types.js";
 import { visitSection } from "./traversal.js";
 import { containedPath, ensureFile } from "./util.js";
 
+export interface LintOptions {
+  /** When true, draft chapters are lint errors. When false, drafts are ignored. */
+  ship?: boolean;
+}
+
+interface UsableChapter {
+  id: string;
+  path: string;
+  role: Section["role"];
+  title?: string;
+  absolute: string;
+  status: ChapterStatus;
+  layout: ChapterLayout;
+}
+
 export interface LintIssue { file: string; message: string }
 export interface LintResult { issues: LintIssue[]; chapters: number }
 
 /** Validates only author-maintained manuscript inputs. It never reads dist or theme files. */
-export async function lintProject(project: string): Promise<LintResult> {
+export async function lintProject(project: string, options: LintOptions = {}): Promise<LintResult> {
   const root = path.resolve(project);
   const configFile = path.join(root, "book.yaml");
   const relativeConfig = "book.yaml";
@@ -38,7 +53,7 @@ export async function lintProject(project: string): Promise<LintResult> {
   const config = configResult.data;
   const issues: LintIssue[] = [];
   const ids = new Set<string>();
-  const usable: Array<{ id: string; path: string; role: Section["role"]; title?: string; absolute: string }> = [];
+  const usable: UsableChapter[] = [];
 
   for (const chapter of config.chapters) {
     const file = chapter.path.replaceAll("\\", "/");
@@ -57,22 +72,70 @@ export async function lintProject(project: string): Promise<LintResult> {
       issues.push({ file, message: "Chapter file is missing. Update its path in book.yaml or add the file." });
       continue;
     }
-    usable.push({ id: chapter.id, path: file, role: chapter.role, ...(chapter.title ? { title: chapter.title } : {}), absolute });
+    usable.push({
+      id: chapter.id,
+      path: file,
+      role: chapter.role,
+      ...(chapter.title ? { title: chapter.title } : {}),
+      absolute,
+      status: chapter.status,
+      layout: chapter.layout,
+    });
   }
 
   const parsedChapters = await Promise.all(usable.map(async (chapter) => {
     try {
-      return { chapter, section: await parseMarkdown(chapter.absolute, root, chapter.id, chapter.role, chapter.title) };
+      return {
+        chapter,
+        section: await parseMarkdown(chapter.absolute, root, chapter.id, chapter.role, chapter.title, chapter.layout),
+      };
     } catch (error) {
       issues.push({ file: chapter.path, message: withoutChapterId(errorMessage(error), chapter.id) });
       return undefined;
     }
   }));
-  const sections = parsedChapters.filter((entry): entry is { chapter: (typeof usable)[number]; section: Section } => Boolean(entry));
+  const sections = parsedChapters.filter((entry): entry is { chapter: UsableChapter; section: Section } => Boolean(entry));
   issues.push(...collectLinkIssues(root, sections));
   await lintImages(root, sections, issues);
+  for (const { chapter, section } of sections) {
+    if (options.ship && chapter.status === "draft") {
+      issues.push({ file: chapter.path, message: 'Chapter status is "draft". Mark it ready or locked before shipping.' });
+    }
+    if (chapter.layout === "verse") issues.push(...lintVerseMeasure(chapter.path, section));
+  }
 
   return { issues: sortIssues(issues), chapters: config.chapters.length };
+}
+
+/** Soft measure for poetry lines: warn when a verse line exceeds ~68 characters. */
+const VERSE_LINE_LIMIT = 68;
+
+function lintVerseMeasure(file: string, section: Section): LintIssue[] {
+  const issues: LintIssue[] = [];
+  visitSection(section, {
+    block: (block) => {
+      if (block.type !== "paragraph") return;
+      const text = inlineTextFromChildren(block.children);
+      for (const line of text.split(/\n/)) {
+        if (line.trim().length > VERSE_LINE_LIMIT) {
+          issues.push({ file, message: `Verse line exceeds ${VERSE_LINE_LIMIT} characters and may overflow the print measure: "${line.trim().slice(0, 40)}…"` });
+        }
+      }
+    },
+  }, { includeTitles: false });
+  return issues;
+}
+
+function inlineTextFromChildren(children: Inline[]): string {
+  return children.map((inline) => {
+    if (inline.type === "text" || inline.type === "code") return inline.value;
+    if (inline.type === "space") return " ";
+    if (inline.type === "softBreak" || inline.type === "lineBreak") return "\n";
+    if (inline.type === "emphasis" || inline.type === "strong" || inline.type === "strikeout" || inline.type === "link") {
+      return inlineTextFromChildren(inline.children);
+    }
+    return "";
+  }).join("");
 }
 
 async function lintImages(root: string, sections: Array<{ chapter: { path: string }; section: Section }>, issues: LintIssue[]): Promise<void> {

@@ -26,7 +26,7 @@ test("builds accessible web and conforming EPUB outputs", async () => {
     await buildProject(root, ["web", "epub"]);
     await access(path.join(root, "dist", "book.epub"));
     const html = await readFile(path.join(root, "dist", "web", "chapters", "night-train.html"), "utf8");
-    assert.match(html, /<article class="chapter bodymatter"/);
+    assert.match(html, /<article class="chapter chapter-threshold bodymatter"/);
     assert.match(html, /role="doc-noteref"/);
     assert.doesNotMatch(html, /<script a=/);
   } finally { await rm(root, { recursive: true, force: true }); }

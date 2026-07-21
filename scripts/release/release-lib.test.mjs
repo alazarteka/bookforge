@@ -4,7 +4,9 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { assertTargetMatchesHost, isSafeArchivePath, normalizeVersion, releaseAssetName, releaseRequirements, releaseTargets, targetForHost } from "./release-lib.mjs";
+import { assertTargetMatchesHost, isSafeArchivePath, normalizeVersion, readPackage, releaseAssetName, releaseRequirements, releaseTargets, targetForHost } from "./release-lib.mjs";
+
+const packageVersion = (await readPackage()).version;
 
 function command(executable, args) {
   return new Promise((resolve, reject) => {
@@ -57,9 +59,9 @@ test("aggregates all target manifests and checksums without network access", asy
   const directory = await mkdtemp(path.join(tmpdir(), "bookforge-release-manifest-"));
   try {
     for (const target of Object.keys(releaseTargets)) {
-      const asset = releaseAssetName("0.1.0", target);
+      const asset = releaseAssetName(packageVersion, target);
       await writeFile(path.join(directory, `${asset}.manifest.json`), `${JSON.stringify({
-        schema: 1, version: "0.1.0", target, asset, sha256: "a".repeat(64), requirements: {},
+        schema: 1, version: packageVersion, target, asset, sha256: "a".repeat(64), requirements: {},
       })}\n`);
     }
     await writeFile(path.join(directory, "bookforge-install.sh"), "#!/usr/bin/env bash\n");

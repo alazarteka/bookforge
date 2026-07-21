@@ -52,6 +52,8 @@ Only the following root keys are accepted:
 | `authors` | Yes | — | A non-empty list of author objects. Every object must contain a non-empty `name`. |
 | `theme` | No | `classic` | Theme identifier, using the same identifier syntax as `id`. |
 | `chapters` | Yes | — | A non-empty ordered list of chapter entries. |
+| `colophon` | No | `false` | When `true`, append a generated Colophon end-matter section naming theme, typefaces context, and build seal. |
+| `editions` | No | `[]` | Sibling editions that share the chapter tree with optional title/theme/overlays. |
 | `outputs` | Yes | — | An object that enables one or more output formats. |
 
 Every project has at least one `authors` entry. When `init` runs without an
@@ -68,6 +70,8 @@ replace it with the real attribution before publishing.
 | `path` | Yes | — | Existing Markdown file within the project. It must end in `.md`. |
 | `role` | No | `bodymatter` | One of `frontmatter`, `bodymatter`, `backmatter`, or `part`. The role is carried into the publication's semantic structure. |
 | `title` | No | — | Non-empty title override for this publication section. |
+| `status` | No | `ready` | One of `draft`, `ready`, or `locked`. Draft chapters are omitted from `build` unless `--include-drafts`; `lint --ship` and `check --ship` refuse drafts. |
+| `layout` | No | `prose` | `prose` for ordinary chapters, `verse` for poetry measure (hanging indent + line-length lint). |
 
 Chapter paths are relative to the project directory. Absolute paths, paths
 that escape the project, and symbolic links that resolve outside it are
@@ -147,6 +151,42 @@ replaces `dist/` with a build that `bookforge check` rejects: `check` requires
 the formats in `dist/build-manifest.json` to match the configured outputs. Run
 an unfiltered `bookforge build my-book` before running `bookforge check
 my-book`.
+
+## Editions
+
+Optional sibling editions share the manuscript’s chapter ids while allowing a
+different title, theme, chapter subset, or Markdown overlays:
+
+```yaml
+editions:
+  - id: annotated
+    title: The Lantern Atlas — Annotated
+    theme: lyceum
+    overlays:
+      opening: editions/annotated/01-opening.md
+```
+
+`bookforge build --edition annotated` writes `dist/editions/annotated/`.
+`bookforge build --all-editions` builds the base book into `dist/` and every
+edition under `dist/editions/<id>/`.
+
+## Proofs, seals, and archives
+
+Every build writes `release-seal.json` with sorted chapter digests and a
+byte-level inventory of its generated files. `bookforge check --seal` rejects
+changed seal metadata, chapter snapshots, missing or unexpected artifacts, and
+artifact bytes that no longer match. A base seal ignores `dist/editions/`;
+each sibling edition has its own seal inside its output directory.
+
+`bookforge diff` compares the current manuscript with the chapter snapshot in
+`dist/release-seal.json`. Use `--against <project-or-dist>` to compare with
+another project or sealed build. If the baseline is missing or predates proof
+snapshots, rebuild it first.
+
+`bookforge archive --label <name>` publishes an immutable archive and updates
+`archives/INDEX.md` only after the copy succeeds. The same book, normalized
+label, and date resolve to the same destination; Bookforge refuses that
+collision so an existing archive can never retain files from a later build.
 
 ## Themes
 

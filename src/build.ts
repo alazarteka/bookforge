@@ -1,6 +1,6 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { BuildManifest, Publication } from "./model.js";
+import type { BookConfig, BuildManifest, ChapterConfig, EditionConfig, Publication, Section } from "./model.js";
 import { loadConfig } from "./config.js";
 import { parseMarkdown } from "./pandoc.js";
 import { collectAssets } from "./assets.js";
@@ -11,51 +11,134 @@ import { loadTheme } from "./theme-loader.js";
 import { loadPrintProfile } from "./profile-loader.js";
 import { rewriteChapterLinks } from "./links.js";
 import { projectToolExecutable } from "./tool-paths.js";
+import { buildColophonSection, shouldInjectColophon } from "./colophon.js";
+import { writeReleaseSeal } from "./seal.js";
+import { writeZineGuide } from "./zine.js";
 import { BOOKFORGE_VERSION, atomicReplaceDirectory, commandVersion, containedPath, run, sha256, sourceEpochDate } from "./util.js";
 
 export type Format = "web" | "epub" | "pdf";
 
-export async function createPublication(projectRoot: string, themeOverride?: string): Promise<{ publication: Publication; config: Awaited<ReturnType<typeof loadConfig>>; theme: Awaited<ReturnType<typeof loadTheme>>; sourceHash: string }> {
+export interface CreatePublicationOptions {
+  includeDrafts?: boolean;
+  editionId?: string;
+  injectColophon?: boolean;
+}
+
+export async function createPublication(
+  projectRoot: string,
+  themeOverride?: string,
+  options: CreatePublicationOptions = {},
+): Promise<{ publication: Publication; config: BookConfig; theme: Awaited<ReturnType<typeof loadTheme>>; sourceHash: string; edition?: EditionConfig }> {
   const config = await loadConfig(projectRoot);
-  const theme = await loadTheme(projectRoot, themeOverride ?? config.theme);
-  const hashes: string[] = [await readFile(path.join(projectRoot, "book.yaml"), "utf8")];
-  const spine = [];
-  for (const chapter of config.chapters) {
-    const file = containedPath(projectRoot, chapter.path);
+  const edition = options.editionId ? requireEdition(config, options.editionId) : undefined;
+  const themeId = themeOverride ?? edition?.theme ?? config.theme;
+  const theme = await loadTheme(projectRoot, themeId);
+  const includeDrafts = options.includeDrafts ?? false;
+  const selectedChapters = selectChapters(config, edition, includeDrafts);
+  const hashes: string[] = [await readFile(path.join(projectRoot, "book.yaml"), "utf8"), edition?.id ?? ""];
+  const spine: Section[] = [];
+  for (const chapter of selectedChapters) {
+    const relativePath = edition?.overlays?.[chapter.id] ?? chapter.path;
+    const file = containedPath(projectRoot, relativePath);
     hashes.push(await readFile(file, "utf8"));
-    spine.push(await parseMarkdown(file, projectRoot, chapter.id, chapter.role, chapter.title));
+    spine.push(await parseMarkdown(file, projectRoot, chapter.id, chapter.role, chapter.title, chapter.layout));
   }
   const publication: Publication = {
     schemaVersion: 1,
-    id: config.id,
+    id: edition ? `${config.id}--${edition.id}` : config.id,
     metadata: {
-      title: config.title,
-      ...(config.subtitle ? { subtitle: config.subtitle } : {}),
+      title: edition?.title ?? config.title,
+      ...((edition?.subtitle ?? config.subtitle) ? { subtitle: edition?.subtitle ?? config.subtitle } : {}),
       language: config.language,
       authors: config.authors.map((author) => author.name),
     },
     spine,
     assets: [],
   };
-  rewriteChapterLinks(publication, projectRoot, config.chapters);
+  rewriteChapterLinks(publication, projectRoot, selectedChapters);
   await collectAssets(publication, projectRoot);
   hashes.push(theme.hash);
   for (const asset of [...publication.assets].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) hashes.push(asset.hash);
-  return { publication, config, theme, sourceHash: sha256(hashes.join("\n\0\n")) };
+  let sourceHash = sha256(hashes.join("\n\0\n"));
+  if ((options.injectColophon ?? true) && shouldInjectColophon(config, publication)) {
+    const printProfile = config.outputs.pdf ? await loadPrintProfile(projectRoot, config.outputs.pdf) : undefined;
+    publication.spine.push(buildColophonSection(publication, config, theme, { ...(printProfile ? { printProfile } : {}), sourceHash }));
+  }
+  return { publication, config, theme, sourceHash, ...(edition ? { edition } : {}) };
+}
+
+function requireEdition(config: BookConfig, editionId: string): EditionConfig {
+  const edition = config.editions.find((entry) => entry.id === editionId);
+  if (!edition) throw new Error(`Unknown edition: ${editionId}`);
+  return edition;
+}
+
+function selectChapters(config: BookConfig, edition: EditionConfig | undefined, includeDrafts: boolean): ChapterConfig[] {
+  const ordered = edition?.chapters
+    ? edition.chapters.map((id) => {
+      const chapter = config.chapters.find((entry) => entry.id === id);
+      if (!chapter) throw new Error(`Edition ${edition.id} references unknown chapter ${id}`);
+      return chapter;
+    })
+    : config.chapters;
+  return ordered.filter((chapter) => includeDrafts || chapter.status !== "draft");
 }
 
 function isFormat(value: string): value is Format {
   return value === "web" || value === "epub" || value === "pdf";
 }
 
-export async function buildProject(project: string, requested?: string[], themeOverride?: string): Promise<string> {
+export interface BuildProjectOptions {
+  formats?: string[];
+  themeOverride?: string;
+  includeDrafts?: boolean;
+  editionId?: string;
+  allEditions?: boolean;
+}
+
+export async function buildProject(project: string, requested?: string[], themeOverride?: string, options: BuildProjectOptions = {}): Promise<string> {
   const projectRoot = path.resolve(project);
-  const { publication, config, theme, sourceHash } = await createPublication(projectRoot, themeOverride);
+  const config = await loadConfig(projectRoot);
+  const formats = resolveFormats(config, options.formats ?? requested);
+  const shared: BuildProjectOptions = {
+    ...(options.includeDrafts !== undefined ? { includeDrafts: options.includeDrafts } : {}),
+    ...(themeOverride ? { themeOverride } : {}),
+  };
+  if (options.allEditions && config.editions.length) {
+    // Build the base edition first, then each sibling into dist/editions/<id>
+    // without letting the base replace wipe sibling outputs.
+    await buildOne(projectRoot, config, formats, shared);
+    for (const edition of config.editions) {
+      await buildOne(projectRoot, config, formats, { ...shared, editionId: edition.id });
+    }
+    return path.join(projectRoot, "dist");
+  }
+  return await buildOne(projectRoot, config, formats, {
+    ...shared,
+    ...(options.editionId ? { editionId: options.editionId } : {}),
+  });
+}
+
+function resolveFormats(config: BookConfig, requested?: string[]): Format[] {
   const configured = Object.keys(config.outputs);
   const candidates = requested?.length ? requested : configured;
   const unsupported = candidates.filter((format) => !isFormat(format));
   if (unsupported.length) throw new Error(`Unknown formats: ${unsupported.join(", ")}`);
-  const formats = candidates.filter(isFormat);
+  return candidates.filter(isFormat);
+}
+
+async function buildOne(
+  projectRoot: string,
+  config: BookConfig,
+  formats: Format[],
+  options: BuildProjectOptions,
+): Promise<string> {
+  const { publication, theme, sourceHash, edition } = await createPublication(projectRoot, options.themeOverride, {
+    includeDrafts: options.includeDrafts ?? false,
+    injectColophon: true,
+    ...(options.editionId ? { editionId: options.editionId } : {}),
+  });
+  if (!publication.spine.length) throw new Error("No chapters to build. Mark chapters ready/locked or pass --include-drafts.");
   const stage = await mkdtemp(path.join(projectRoot, ".bookforge-stage-"));
   try {
     if (formats.includes("web")) await renderWeb(publication, theme, path.join(stage, "web"), config.outputs.web?.reading ?? "paged");
@@ -67,6 +150,7 @@ export async function buildProject(project: string, requested?: string[], themeO
     }
     const printProfile = formats.includes("pdf") ? await loadPrintProfile(projectRoot, config.outputs.pdf) : undefined;
     if (printProfile) await renderPdf(publication, theme, printProfile, stage, path.join(stage, "book.pdf"));
+    if (printProfile?.imposition === "booklet") await writeZineGuide(stage, publication, printProfile);
     const versions = await toolVersions(formats);
     const manifest: BuildManifest = {
       bookforgeVersion: BOOKFORGE_VERSION,
@@ -80,12 +164,47 @@ export async function buildProject(project: string, requested?: string[], themeO
       timestamp: sourceEpochDate().toISOString(),
     };
     await writeFile(path.join(stage, "build-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-    const destination = path.join(projectRoot, "dist");
-    await atomicReplaceDirectory(stage, destination, path.join(projectRoot, ".bookforge-previous-dist"));
+    await writeReleaseSeal(stage, {
+      publication,
+      theme,
+      sourceHash,
+      formats,
+      toolVersions: versions,
+      timestamp: manifest.timestamp,
+      ...(printProfile ? { printProfile } : {}),
+      ...(edition ? { editionId: edition.id } : {}),
+    });
+    const destination = edition
+      ? path.join(projectRoot, "dist", "editions", edition.id)
+      : path.join(projectRoot, "dist");
+    if (edition) {
+      await mkdir(path.join(projectRoot, "dist", "editions"), { recursive: true });
+      await atomicReplaceDirectory(stage, destination, path.join(projectRoot, `.bookforge-previous-edition-${edition.id}`));
+    } else {
+      // Preserve any sibling edition builds already under dist/editions.
+      const editionsKeep = path.join(projectRoot, ".bookforge-keep-editions");
+      await rm(editionsKeep, { recursive: true, force: true });
+      await renameIfExists(path.join(projectRoot, "dist", "editions"), editionsKeep);
+      try {
+        await atomicReplaceDirectory(stage, destination, path.join(projectRoot, ".bookforge-previous-dist"));
+        await renameIfExists(editionsKeep, path.join(projectRoot, "dist", "editions"));
+      } catch (error) {
+        await renameIfExists(editionsKeep, path.join(projectRoot, "dist", "editions"));
+        throw error;
+      }
+    }
     return destination;
   } catch (error) {
     await rm(stage, { recursive: true, force: true });
     throw error;
+  }
+}
+
+async function renameIfExists(from: string, to: string): Promise<void> {
+  try {
+    await rename(from, to);
+  } catch {
+    // absent source is fine
   }
 }
 

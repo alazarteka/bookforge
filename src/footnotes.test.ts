@@ -14,6 +14,7 @@ const section: Section = {
   id: "ch1",
   role: "bodymatter",
   title: [{ type: "text", value: "Chapter One" }],
+  layout: "prose",
   blocks: [
     { type: "blockquote", blocks: [
       { type: "paragraph", children: [

@@ -1,5 +1,27 @@
 export type SectionRole = "frontmatter" | "bodymatter" | "backmatter" | "part";
+export type ChapterStatus = "draft" | "ready" | "locked";
+export type ChapterLayout = "prose" | "verse";
 export type OutputFlavor = "web" | "epub" | "print";
+
+export interface ChapterConfig {
+  id: string;
+  path: string;
+  role: SectionRole;
+  title?: string;
+  status: ChapterStatus;
+  layout: ChapterLayout;
+}
+
+export interface EditionConfig {
+  id: string;
+  title?: string;
+  subtitle?: string;
+  theme?: string;
+  /** When set, only these chapter ids (in this order) are included. */
+  chapters?: string[];
+  /** Optional path overlays keyed by chapter id. */
+  overlays?: Record<string, string>;
+}
 
 export interface BookConfig {
   schema: 1;
@@ -9,7 +31,11 @@ export interface BookConfig {
   language: string;
   authors: Array<{ name: string }>;
   theme: string;
-  chapters: Array<{ id: string; path: string; role: SectionRole; title?: string }>;
+  chapters: ChapterConfig[];
+  /** When true, append a generated colophon as end matter. */
+  colophon: boolean;
+  /** Sibling editions that share the chapter tree with optional overlays. */
+  editions: EditionConfig[];
   outputs: {
     web?: { reading?: "paged" | "continuous" };
     epub?: Record<string, never>;
@@ -58,6 +84,8 @@ export interface PrintProfile {
   binding: "screen" | "perfect" | "coil";
   color: "color" | "grayscale";
   cover: "interior" | "none";
+  /** Home-printer booklet guidance; Bookforge does not compute commercial imposition. */
+  imposition: "none" | "booklet";
   hash: string;
 }
 
@@ -80,6 +108,7 @@ export interface Section {
   title: Inline[];
   /** The generated target for a level-one Markdown title, when one supplied the section title. */
   titleAnchor?: string;
+  layout: ChapterLayout;
   blocks: Block[];
 }
 

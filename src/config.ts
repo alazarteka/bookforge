@@ -12,6 +12,17 @@ const chapterSchema = z.object({
   path: z.string().min(1),
   role: z.enum(["frontmatter", "bodymatter", "backmatter", "part"]).default("bodymatter"),
   title: z.string().min(1).optional(),
+  status: z.enum(["draft", "ready", "locked"]).default("ready"),
+  layout: z.enum(["prose", "verse"]).default("prose"),
+}).strict();
+
+const editionSchema = z.object({
+  id: identifier,
+  title: z.string().min(1).optional(),
+  subtitle: z.string().min(1).optional(),
+  theme: identifier.optional(),
+  chapters: z.array(identifier).min(1).optional(),
+  overlays: z.record(identifier, z.string().min(1)).optional(),
 }).strict();
 
 export const bookConfigSchema = z.object({
@@ -23,12 +34,37 @@ export const bookConfigSchema = z.object({
   authors: z.array(z.object({ name: z.string().min(1) }).strict()).min(1),
   theme: identifier.default("classic"),
   chapters: z.array(chapterSchema).min(1),
+  colophon: z.boolean().default(false),
+  editions: z.array(editionSchema).default([]),
   outputs: z.object({
     web: z.object({ reading: z.enum(["paged", "continuous"]).default("paged") }).strict().optional(),
     epub: emptyObject.optional(),
     pdf: z.object({ profile: identifier.optional(), page: z.string().min(1).optional(), margins: z.union([z.string().min(1), z.literal(0).transform(() => "0")]).optional() }).strict().optional(),
   }).strict().refine((outputs) => Object.keys(outputs).length > 0, "at least one output is required"),
-}).strict();
+}).strict().superRefine((config, ctx) => {
+  const chapterIds = new Set(config.chapters.map((chapter) => chapter.id));
+  const editionIds = new Set<string>();
+  for (const [index, edition] of config.editions.entries()) {
+    if (editionIds.has(edition.id)) {
+      ctx.addIssue({ code: "custom", message: `Duplicate edition id: ${edition.id}`, path: ["editions", index, "id"] });
+    }
+    editionIds.add(edition.id);
+    if (edition.chapters) {
+      for (const [chapterIndex, chapterId] of edition.chapters.entries()) {
+        if (!chapterIds.has(chapterId)) {
+          ctx.addIssue({ code: "custom", message: `Unknown chapter id "${chapterId}"`, path: ["editions", index, "chapters", chapterIndex] });
+        }
+      }
+    }
+    if (edition.overlays) {
+      for (const chapterId of Object.keys(edition.overlays)) {
+        if (!chapterIds.has(chapterId)) {
+          ctx.addIssue({ code: "custom", message: `Unknown chapter id "${chapterId}" in overlays`, path: ["editions", index, "overlays", chapterId] });
+        }
+      }
+    }
+  }
+});
 
 export async function loadConfig(projectRoot: string): Promise<BookConfig> {
   const configPath = path.join(projectRoot, "book.yaml");
@@ -41,6 +77,12 @@ export async function loadConfig(projectRoot: string): Promise<BookConfig> {
     ids.add(chapter.id);
     await ensureFile(containedPath(projectRoot, chapter.path), `Chapter ${chapter.id}`);
     if (!chapter.path.toLowerCase().endsWith(".md")) throw new Error(`Chapter must be Markdown: ${chapter.path}`);
+  }
+  for (const edition of config.editions) {
+    for (const overlay of Object.values(edition.overlays ?? {})) {
+      await ensureFile(containedPath(projectRoot, overlay), `Edition overlay ${edition.id}`);
+      if (!overlay.toLowerCase().endsWith(".md")) throw new Error(`Edition overlay must be Markdown: ${overlay}`);
+    }
   }
   return config;
 }
