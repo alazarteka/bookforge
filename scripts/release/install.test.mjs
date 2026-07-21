@@ -33,7 +33,17 @@ test("installer accepts manually downloaded private-release assets without curl"
     await writeFile(path.join(bundle, "lib", "cli.js"), "// fixture\n");
     await writeFile(path.join(bundle, "docs", "RELEASES.md"), "# Release guide\n");
     await writeFile(path.join(bundle, "release-manifest.json"), `${JSON.stringify({ version, target })}\n`);
+    const bulk = path.join(bundle, "bulk");
+    await mkdir(bulk);
+    for (let offset = 0; offset < 5_000; offset += 250) {
+      await Promise.all(Array.from({ length: 250 }, (_, index) => {
+        const sequence = String(offset + index).padStart(5, "0");
+        return writeFile(path.join(bulk, `${sequence}-${"x".repeat(180)}`), "");
+      }));
+    }
     await run("tar", ["-C", temporary, "-czf", path.join(assets, asset), root], { quiet: true });
+    const listing = await run("tar", ["-tzf", path.join(assets, asset)], { quiet: true });
+    assert.ok(Buffer.byteLength(listing.stdout) > 1024 * 1024, "fixture must exceed Node's former execFileSync buffer");
     const sha256 = createHash("sha256").update(await readFile(path.join(assets, asset))).digest("hex");
     await writeFile(path.join(assets, "bookforge-release-manifest.json"), `${JSON.stringify({ version, targets: { [target]: { asset, sha256 } } })}\n`);
 

@@ -74,18 +74,45 @@ assert_archive_paths() {
 }
 
 assert_safe_links() {
-  node --input-type=module - "$1" <<'NODE'
-import { execFileSync } from "node:child_process";
+  node --input-type=module - "$1" "$2" <<'NODE'
+import { spawn } from "node:child_process";
 import path from "node:path";
+import { createInterface } from "node:readline";
 
-const archive = process.argv[2];
-const listing = execFileSync("tar", ["-tzf", archive], { encoding: "utf8" }).trim().split("\n").filter(Boolean);
-const root = listing[0]?.split("/", 1)[0];
+const [archive, root] = process.argv.slice(2);
 if (!root) process.exit(2);
-const detail = execFileSync("tar", ["-tvzf", archive], { encoding: "utf8" }).trim().split("\n");
-for (const line of detail) {
+
+async function inspectTar(args, inspect) {
+  const child = spawn("tar", args, { stdio: ["ignore", "pipe", "pipe"] });
+  let stderr = "";
+  child.stderr.setEncoding("utf8");
+  child.stderr.on("data", (chunk) => { stderr += chunk; });
+  const complete = new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.once("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`tar ${args.join(" ")} exited with ${code}${stderr ? `: ${stderr.trim()}` : ""}`));
+    });
+  });
+  const lines = createInterface({ input: child.stdout, crlfDelay: Infinity });
+  try {
+    for await (const line of lines) inspect(line);
+  } catch (error) {
+    child.kill();
+    await complete.catch(() => undefined);
+    throw error;
+  }
+  await complete;
+}
+
+await inspectTar(["-tzf", archive], (entry) => {
+  if (entry && entry !== root && entry !== `${root}/` && !entry.startsWith(`${root}/`)) {
+    throw new Error("release archive contains an unexpected root entry");
+  }
+});
+await inspectTar(["-tvzf", archive], (line) => {
   if (line.startsWith("h")) throw new Error("release archive contains a hard link");
-  if (!line.startsWith("l")) continue;
+  if (!line.startsWith("l")) return;
   const marker = " -> ";
   const offset = line.indexOf(marker);
   if (offset === -1) throw new Error("release archive has an unparseable symbolic link");
@@ -94,7 +121,7 @@ for (const line of detail) {
   if (!link || !target || target.startsWith("/") || target.includes("\0")) throw new Error("release archive contains an unsafe symbolic link");
   const resolved = path.posix.resolve("/", path.posix.dirname(link), target);
   if (resolved !== `/${root}` && !resolved.startsWith(`/${root}/`)) throw new Error("release archive symbolic link escapes its bundle");
-}
+});
 NODE
 }
 
@@ -179,7 +206,7 @@ fi
 actual_sha=$(sha256_file "$archive")
 [ "$actual_sha" = "$expected_sha" ] || fail "checksum mismatch for $asset"
 assert_archive_paths "$archive"
-assert_safe_links "$archive"
+assert_safe_links "$archive" "bookforge-${available_version}-${target}"
 tar -xzf "$archive" -C "$temporary"
 
 bundle="$(find "$temporary" -mindepth 1 -maxdepth 1 -type d -name "bookforge-${available_version}-${target}" -print -quit)"

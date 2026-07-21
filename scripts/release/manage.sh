@@ -5,7 +5,11 @@ fail() { echo "bookforge: $*" >&2; exit 1; }
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
 HOME_DIR=${BOOKFORGE_HOME:-$(CDPATH= cd -- "$ROOT/../../.." && pwd -P)}
-STATE_FILE="$HOME_DIR/install-state.json"
+# New installers keep state with each release so rollback also restores its
+# update configuration. Fall back to the shared path used by v0.2.0 and older
+# installers so either installer generation can activate this manager.
+STATE_FILE="$ROOT/install-state.json"
+[ -f "$STATE_FILE" ] || STATE_FILE="$HOME_DIR/install-state.json"
 CURRENT_LINK="$HOME_DIR/current"
 PREVIOUS_LINK="$HOME_DIR/previous"
 
