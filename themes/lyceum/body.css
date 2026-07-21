@@ -76,3 +76,7 @@ a { color: var(--accent); text-decoration-thickness: .07em; text-underline-offse
 .footnote-back .fn-back { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vertical-align: baseline; }
 
 ::selection { color: var(--ink); background: rgba(124, 47, 47, .22); }
+
+/* Verse layout: hanging indent when a chapter opts into layout: verse */
+.chapter.layout-verse .prose p { text-indent: calc(-1 * var(--verse-indent, 1.5em)); padding-left: var(--verse-indent, 1.5em); }
+.chapter.layout-verse .prose p + p { margin-top: 1.25em; text-indent: calc(-1 * var(--verse-indent, 1.5em)); }

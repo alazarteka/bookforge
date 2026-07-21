@@ -22,6 +22,7 @@ const profileSchema = z.object({
   binding: z.enum(["screen", "perfect", "coil"]),
   color: z.enum(["color", "grayscale"]).default("color"),
   cover: z.enum(["interior", "none"]).default("interior"),
+  imposition: z.enum(["none", "booklet"]).default("none"),
 }).strict();
 
 export async function loadPrintProfile(projectRoot: string, pdf: BookConfig["outputs"]["pdf"]): Promise<PrintProfile> {

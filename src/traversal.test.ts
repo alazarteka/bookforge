@@ -12,6 +12,7 @@ const publication: Publication = {
     id: "chapter",
     role: "bodymatter",
     title: [{ type: "text", value: "Title" }],
+    layout: "prose",
     blocks: [{
       type: "paragraph",
       children: [

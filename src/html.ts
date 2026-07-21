@@ -152,5 +152,6 @@ export function sectionArticle(section: Section, publication: Publication, conte
   } else {
     prose = renderBlocks(section.blocks, context);
   }
-  return `<article class="chapter ${section.role}" id="${escapeHtml(section.id)}">${header}<div class="prose">${prose}${renderFootnotes(collectFootnotes(section), context)}</div></article>`;
+  const layoutClass = section.layout === "verse" ? " layout-verse" : "";
+  return `<article class="chapter chapter-threshold ${section.role}${layoutClass}" id="${escapeHtml(section.id)}">${header}<div class="prose">${prose}${renderFootnotes(collectFootnotes(section), context)}</div></article>`;
 }

@@ -98,14 +98,21 @@ A project contains `book.yaml`, an ordered chapter list, and local assets. Use
 this lifecycle while authoring:
 
 ```sh
+bookforge status ../my-book
 bookforge lint ../my-book
 bookforge build ../my-book
 bookforge check ../my-book
+bookforge gift ../my-book --to Sam
+bookforge archive ../my-book --label v1
 ```
 
-A normal build renders every output declared in `book.yaml`. `check` requires
-fresh `dist/` artifacts whose formats match those configured outputs, and
-rejects stale or partial artifacts. Use `build --format …` for an ad-hoc partial
+`status` shows chapter word counts and draft/ready/locked pacing. A normal build
+renders every output declared in `book.yaml`, omits `draft` chapters (unless
+`--include-drafts`), writes `release-seal.json`, and can emit a zine fold guide
+when the print profile sets `imposition: booklet`. `check` requires fresh
+`dist/` artifacts whose formats match those configured outputs, and rejects
+stale or partial artifacts; pass `--seal` to verify the release seal and
+`--ship` to refuse draft chapters. Use `build --format …` for an ad-hoc partial
 build; use `preview` for a live web-only editing view in `.bookforge-preview/`
 without replacing `dist/`.
 
@@ -126,17 +133,25 @@ dist/
   book.epub
   book.pdf
   build-manifest.json
+  release-seal.json
 ```
 
 Useful source-checkout commands:
 
 ```sh
+node lib/cli.js status [project]
 node lib/cli.js build [project] --format web,epub,pdf
 node lib/cli.js build [project] --theme meridian
+node lib/cli.js build [project] --all-editions
+node lib/cli.js gift [project] --to Sam
+node lib/cli.js archive [project] --label v1
+node lib/cli.js diff [project]
+node lib/cli.js drift [project]
 node lib/cli.js preview [project] --theme riso-club
 node lib/cli.js themes
 node lib/cli.js themes show classic
 node lib/cli.js themes preview [project]
+node lib/cli.js themes test
 node lib/cli.js lint [project]
 node lib/cli.js check [project]
 node lib/cli.js doctor

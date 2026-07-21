@@ -1,12 +1,19 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import type { Block, Inline, Section, SectionRole } from "./model.js";
+import type { Block, ChapterLayout, Inline, Section, SectionRole } from "./model.js";
 import { inlineText, run, slugify } from "./util.js";
 
 interface PandocNode { t: string; c?: unknown }
 interface PandocDocument { "pandoc-api-version": number[]; meta: unknown; blocks: PandocNode[] }
 
-export async function parseMarkdown(file: string, projectRoot: string, id: string, role: SectionRole, configuredTitle?: string): Promise<Section> {
+export async function parseMarkdown(
+  file: string,
+  projectRoot: string,
+  id: string,
+  role: SectionRole,
+  configuredTitle?: string,
+  layout: ChapterLayout = "prose",
+): Promise<Section> {
   const source = await readFile(file, "utf8");
   const rawHtml = /^\s*<\/?[A-Za-z][^>]*>/m.exec(source);
   if (rawHtml?.index !== undefined) throw sourceError(file, source, rawHtml.index, "raw HTML is not supported; write literal angle-bracket text as inline code, for example `<option>`.");
@@ -39,7 +46,7 @@ export async function parseMarkdown(file: string, projectRoot: string, id: strin
     if (block.level > previousHeading + 1) throw new Error(`${id}: heading hierarchy jumps from level ${previousHeading} to ${block.level}`);
     previousHeading = block.level;
   }
-  return { id, role, title, ...(titleAnchor ? { titleAnchor } : {}), blocks };
+  return { id, role, title, layout, ...(titleAnchor ? { titleAnchor } : {}), blocks };
 }
 
 function adaptInlines(nodes: unknown, state: State): Inline[] {

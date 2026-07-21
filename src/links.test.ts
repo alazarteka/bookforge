@@ -9,6 +9,7 @@ function section(id: string, overrides: Partial<Section> = {}): Section {
     role: "bodymatter",
     title: [{ type: "text", value: id }],
     titleAnchor: `${id}--title`,
+    layout: "prose",
     blocks: [{ type: "heading", level: 2, id: `${id}--local-target`, children: [{ type: "text", value: "Local" }] }],
     ...overrides,
   };

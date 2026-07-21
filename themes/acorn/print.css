@@ -51,3 +51,7 @@ html[data-binding="perfect"] .chapter.bodymatter, html[data-binding="perfect"] .
 .prose p { orphans: 3; widows: 3; }
 .footnotes { break-inside: auto; }
 .footnotes li { break-inside: avoid; }
+
+/* Keep scene-break thresholds from orphaning at page edges */
+.scene-break { break-inside: avoid; break-after: avoid-page; }
+.chapter-threshold .chapter-header { break-after: avoid; }

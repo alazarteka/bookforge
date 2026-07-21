@@ -17,6 +17,7 @@ built-in `profiles/<id>.yaml`. The built-in profiles are:
 - `paperback-7x10`: grayscale 7×10 inch perfect-bound interior
 - `paperback-b5`: grayscale JIS B5 perfect-bound interior
 - `coil-letter`: grayscale US Letter coil-bound study copy
+- `zine-halfletter`: color half-letter page with `imposition: booklet` (writes a fold-and-staple guide; does not rewrite PDF page order)
 
 Use a built-in profile by setting its ID. Project-local profiles with the same
 ID take precedence, which lets a book customize a profile without changing
@@ -57,6 +58,7 @@ cover: interior
 | `binding` | `screen`, `perfect`, or `coil` | — |
 | `color` | `color` or `grayscale` | `color` |
 | `cover` | `interior` or `none` | `interior` |
+| `imposition` | `none` or `booklet` | `none` |
 
 An absolute length is `0` or a decimal number followed by `mm`, `cm`, `in`, or
 `pt`. A bare YAML numeric `0` is accepted and normalized for `margins` and
@@ -70,7 +72,8 @@ horizontal, bottom; and four mean top, right, bottom, left.
 `data-color` attributes on the rendered document. `cover: interior` includes
 Bookforge's simple title cover; `cover: none` omits it. The initial PDF scope
 does not calculate a paperback wrap, spine width, barcode zone, crop marks,
-commercial bleed, or imposition.
+or commercial bleed. `imposition: booklet` only adds a home-printer zine guide
+under `dist/print/`; it does not reorder PDF pages.
 
 ## Book-level page and margin overrides
 
