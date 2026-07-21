@@ -4,7 +4,7 @@ import { realpathSync } from "node:fs";
 import { mkdir, readFile, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
-export const BOOKFORGE_VERSION = "0.1.0";
+export const BOOKFORGE_VERSION = "0.2.0";
 
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => ({
