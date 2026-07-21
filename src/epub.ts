@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createWriteStream } from "node:fs";
@@ -57,19 +57,24 @@ export async function renderEpub(publication: Publication, theme: PublicationThe
   }
 }
 
-async function zipEpub(root: string, outputFile: string): Promise<void> {
+export async function zipEpub(root: string, outputFile: string): Promise<void> {
   const zip = new ZipFile();
   const mtime = sourceEpochDate();
   zip.addBuffer(Buffer.from("application/epub+zip"), "mimetype", { compress: false, mtime, mode: 0o100644 });
   const files = ["META-INF/container.xml", "EPUB/package.opf", "EPUB/nav.xhtml", "EPUB/styles.css"];
-  const entries = await import("node:fs/promises").then(async ({ readdir }) => {
-    const epubFiles = await readdir(path.join(root, "EPUB"), { recursive: true });
-    return epubFiles.filter((entry) => typeof entry === "string" && !files.includes(`EPUB/${entry}`)).map((entry) => `EPUB/${entry}`).sort();
-  });
+  const epubRoot = path.join(root, "EPUB");
+  const epubFiles = await readdir(epubRoot, { recursive: true, withFileTypes: true });
+  const entries = epubFiles
+    .filter((entry) => entry.isFile())
+    .map((entry) => {
+      const relative = path.relative(epubRoot, path.join(entry.parentPath, entry.name)).replaceAll("\\", "/");
+      return `EPUB/${relative}`;
+    })
+    .filter((name) => !files.includes(name))
+    .sort();
   for (const name of [...files, ...entries]) {
-    const full = path.join(root, name);
-    const data = await readFile(full).catch(() => undefined);
-    if (data) zip.addBuffer(data, name, { mtime, mode: 0o100644 });
+    const data = await readFile(path.join(root, name));
+    zip.addBuffer(data, name, { mtime, mode: 0o100644 });
   }
   await mkdir(path.dirname(outputFile), { recursive: true });
   await new Promise<void>((resolve, reject) => {

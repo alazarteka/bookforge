@@ -90,13 +90,18 @@ function headingTargets(section: Publication["spine"][number]): Map<string, stri
   return targets;
 }
 
-export async function buildProject(project: string, requested?: Format[], themeOverride?: string): Promise<string> {
+function isFormat(value: string): value is Format {
+  return value === "web" || value === "epub" || value === "pdf";
+}
+
+export async function buildProject(project: string, requested?: string[], themeOverride?: string): Promise<string> {
   const projectRoot = path.resolve(project);
   const { publication, config, theme, sourceHash } = await createPublication(projectRoot, themeOverride);
-  const configured = Object.keys(config.outputs) as Format[];
-  const formats = requested?.length ? requested : configured;
-  const unsupported = formats.filter((format) => !["web", "epub", "pdf"].includes(format));
+  const configured = Object.keys(config.outputs);
+  const candidates = requested?.length ? requested : configured;
+  const unsupported = candidates.filter((format) => !isFormat(format));
   if (unsupported.length) throw new Error(`Unknown formats: ${unsupported.join(", ")}`);
+  const formats = candidates.filter(isFormat);
   const stage = await mkdtemp(path.join(projectRoot, ".bookforge-stage-"));
   try {
     if (formats.includes("web")) await renderWeb(publication, theme, path.join(stage, "web"), config.outputs.web?.reading ?? "paged");
