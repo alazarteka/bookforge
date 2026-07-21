@@ -170,6 +170,24 @@ editions:
 `bookforge build --all-editions` builds the base book into `dist/` and every
 edition under `dist/editions/<id>/`.
 
+## Proofs, seals, and archives
+
+Every build writes `release-seal.json` with sorted chapter digests and a
+byte-level inventory of its generated files. `bookforge check --seal` rejects
+changed seal metadata, chapter snapshots, missing or unexpected artifacts, and
+artifact bytes that no longer match. A base seal ignores `dist/editions/`;
+each sibling edition has its own seal inside its output directory.
+
+`bookforge diff` compares the current manuscript with the chapter snapshot in
+`dist/release-seal.json`. Use `--against <project-or-dist>` to compare with
+another project or sealed build. If the baseline is missing or predates proof
+snapshots, rebuild it first.
+
+`bookforge archive --label <name>` publishes an immutable archive and updates
+`archives/INDEX.md` only after the copy succeeds. The same book, normalized
+label, and date resolve to the same destination; Bookforge refuses that
+collision so an existing archive can never retain files from a later build.
+
 ## Themes
 
 Omit `theme` to use the bundled `classic` theme. For `theme: my-theme`,

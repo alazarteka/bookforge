@@ -1,8 +1,22 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import type { BookConfig, PrintProfile, Publication, PublicationTheme } from "./model.js";
-import { BOOKFORGE_VERSION, sha256, sourceEpochDate } from "./util.js";
+import type { PrintProfile, Publication, PublicationTheme } from "./model.js";
+import { visitSection } from "./traversal.js";
+import { BOOKFORGE_VERSION, inlineText, sha256 } from "./util.js";
+
+const hashSchema = z.string().regex(/^[a-f0-9]{64}$/);
+const chapterSnapshotSchema = z.object({
+  id: z.string().min(1),
+  title: z.string(),
+  words: z.number().int().nonnegative(),
+  digest: hashSchema,
+}).strict();
+const artifactSchema = z.object({
+  path: z.string().min(1),
+  bytes: z.number().int().nonnegative(),
+  digest: hashSchema,
+}).strict();
 
 const sealSchema = z.object({
   schemaVersion: z.literal(1),
@@ -11,28 +25,33 @@ const sealSchema = z.object({
   publicationId: z.string().min(1),
   editionId: z.string().min(1).optional(),
   title: z.string().min(1),
-  sourceHash: z.string().regex(/^[a-f0-9]{64}$/),
+  sourceHash: hashSchema,
   theme: z.object({ id: z.string(), version: z.string(), hash: z.string(), source: z.enum(["built-in", "project"]) }).strict(),
   printProfile: z.object({ id: z.string(), hash: z.string(), source: z.enum(["built-in", "project"]) }).strict().optional(),
   formats: z.array(z.enum(["web", "epub", "pdf"])).min(1),
   toolVersions: z.record(z.string(), z.string()),
-  contentDigest: z.string().regex(/^[a-f0-9]{64}$/),
+  chapters: z.array(chapterSnapshotSchema),
+  artifacts: z.array(artifactSchema),
   timestamp: z.string().min(1),
+  contentDigest: hashSchema,
 }).strict();
 
 export type ReleaseSeal = z.infer<typeof sealSchema>;
+export type ChapterSnapshot = ReleaseSeal["chapters"][number];
 
-export async function writeReleaseSeal(destination: string, input: {
+export interface SealExpectations {
   publication: Publication;
-  config: BookConfig;
-  theme: PublicationTheme;
   sourceHash: string;
+  theme: PublicationTheme;
   formats: Array<"web" | "epub" | "pdf">;
   toolVersions: Record<string, string>;
+  timestamp: string;
   printProfile?: PrintProfile;
   editionId?: string;
-}): Promise<string> {
-  const seal: ReleaseSeal = {
+}
+
+export async function writeReleaseSeal(destination: string, input: SealExpectations): Promise<string> {
+  const payload = canonicalPayload({
     schemaVersion: 1,
     kind: "bookforge-release-seal",
     bookforgeVersion: BOOKFORGE_VERSION,
@@ -40,19 +59,15 @@ export async function writeReleaseSeal(destination: string, input: {
     ...(input.editionId ? { editionId: input.editionId } : {}),
     title: input.publication.metadata.title,
     sourceHash: input.sourceHash,
-    theme: { id: input.theme.id, version: input.theme.version, hash: input.theme.hash, source: input.theme.source },
-    ...(input.printProfile ? { printProfile: { id: input.printProfile.id, hash: input.printProfile.hash, source: input.printProfile.source } } : {}),
+    theme: themeIdentity(input.theme),
+    ...(input.printProfile ? { printProfile: printProfileIdentity(input.printProfile) } : {}),
     formats: input.formats,
     toolVersions: input.toolVersions,
-    contentDigest: sha256(JSON.stringify({
-      id: input.publication.id,
-      title: input.publication.metadata.title,
-      spine: input.publication.spine.map((section) => section.id),
-      sourceHash: input.sourceHash,
-      theme: input.theme.hash,
-    })),
-    timestamp: sourceEpochDate().toISOString(),
-  };
+    chapters: snapshotChapters(input.publication),
+    artifacts: await inventoryArtifacts(destination),
+    timestamp: input.timestamp,
+  });
+  const seal: ReleaseSeal = { ...payload, contentDigest: digestPayload(payload) };
   const file = path.join(destination, "release-seal.json");
   await writeFile(file, `${JSON.stringify(seal, null, 2)}\n`);
   return file;
@@ -63,12 +78,137 @@ export async function loadReleaseSeal(file: string): Promise<ReleaseSeal> {
   return sealSchema.parse(parsed);
 }
 
-export async function assertSealMatches(dist: string, sourceHash: string, publicationId: string): Promise<ReleaseSeal> {
-  const seal = await loadReleaseSeal(path.join(dist, "release-seal.json"));
+export function snapshotChapters(publication: Publication): ChapterSnapshot[] {
+  return publication.spine
+    .map((section) => {
+      let words = 0;
+      const countWords = (value: string): void => {
+        const trimmed = value.trim();
+        if (trimmed) words += trimmed.split(/\s+/).length;
+      };
+      visitSection(section, {
+        block: (block) => { if (block.type === "codeBlock") countWords(block.value); },
+        inline: (inline) => {
+          if (inline.type === "text" || inline.type === "code") countWords(inline.value);
+        },
+      }, { includeTitles: true });
+      return {
+        id: section.id,
+        title: inlineText(section.title),
+        words,
+        digest: sha256(JSON.stringify(section)),
+      };
+    })
+    .sort((left, right) => left.id.localeCompare(right.id));
+}
+
+export async function assertSealMatches(dist: string, expected: SealExpectations): Promise<ReleaseSeal> {
+  let seal: ReleaseSeal;
+  try {
+    seal = await loadReleaseSeal(path.join(dist, "release-seal.json"));
+  } catch (error) {
+    throw new Error(`Release seal is missing or incompatible; rebuild the project: ${errorMessage(error)}`);
+  }
+  const payload = canonicalPayload(seal);
+  if (seal.contentDigest !== digestPayload(payload)) throw new Error("Release seal content digest does not match its metadata");
   if (seal.bookforgeVersion !== BOOKFORGE_VERSION) {
     throw new Error(`Release seal was generated by Bookforge ${seal.bookforgeVersion}, not ${BOOKFORGE_VERSION}`);
   }
-  if (seal.publicationId !== publicationId) throw new Error("Release seal publication ID does not match the current project");
-  if (seal.sourceHash !== sourceHash) throw new Error("Release seal is stale: source hash does not match the current project");
+  const expectedIdentity = canonicalIdentity(expected);
+  const actualIdentity = canonicalIdentityFromSeal(seal);
+  if (JSON.stringify(actualIdentity) !== JSON.stringify(expectedIdentity)) {
+    throw new Error("Release seal metadata does not match the current project and build manifest");
+  }
+  const chapters = snapshotChapters(expected.publication);
+  if (JSON.stringify(seal.chapters) !== JSON.stringify(chapters)) {
+    throw new Error("Release seal chapter snapshot does not match the current publication");
+  }
+  const artifacts = await inventoryArtifacts(dist);
+  if (JSON.stringify(seal.artifacts) !== JSON.stringify(artifacts)) {
+    throw new Error("Release seal artifact inventory does not match dist contents");
+  }
   return seal;
+}
+
+type SealPayload = Omit<ReleaseSeal, "contentDigest">;
+
+function canonicalPayload(input: SealPayload | ReleaseSeal): SealPayload {
+  return {
+    schemaVersion: 1,
+    kind: "bookforge-release-seal",
+    bookforgeVersion: input.bookforgeVersion,
+    publicationId: input.publicationId,
+    ...(input.editionId ? { editionId: input.editionId } : {}),
+    title: input.title,
+    sourceHash: input.sourceHash,
+    theme: { ...input.theme },
+    ...(input.printProfile ? { printProfile: { ...input.printProfile } } : {}),
+    formats: [...input.formats],
+    toolVersions: sortedRecord(input.toolVersions),
+    chapters: [...input.chapters].sort((left, right) => left.id.localeCompare(right.id)),
+    artifacts: [...input.artifacts].sort((left, right) => left.path.localeCompare(right.path)),
+    timestamp: input.timestamp,
+  };
+}
+
+function digestPayload(payload: SealPayload): string {
+  return sha256(JSON.stringify(canonicalPayload(payload)));
+}
+
+function canonicalIdentity(input: SealExpectations): object {
+  return {
+    publicationId: input.publication.id,
+    ...(input.editionId ? { editionId: input.editionId } : {}),
+    title: input.publication.metadata.title,
+    sourceHash: input.sourceHash,
+    theme: themeIdentity(input.theme),
+    ...(input.printProfile ? { printProfile: printProfileIdentity(input.printProfile) } : {}),
+    formats: [...input.formats],
+    toolVersions: sortedRecord(input.toolVersions),
+    timestamp: input.timestamp,
+  };
+}
+
+function canonicalIdentityFromSeal(seal: ReleaseSeal): object {
+  return {
+    publicationId: seal.publicationId,
+    ...(seal.editionId ? { editionId: seal.editionId } : {}),
+    title: seal.title,
+    sourceHash: seal.sourceHash,
+    theme: { ...seal.theme },
+    ...(seal.printProfile ? { printProfile: { ...seal.printProfile } } : {}),
+    formats: [...seal.formats],
+    toolVersions: sortedRecord(seal.toolVersions),
+    timestamp: seal.timestamp,
+  };
+}
+
+function themeIdentity(theme: PublicationTheme): ReleaseSeal["theme"] {
+  return { id: theme.id, version: theme.version, hash: theme.hash, source: theme.source };
+}
+
+function printProfileIdentity(profile: PrintProfile): NonNullable<ReleaseSeal["printProfile"]> {
+  return { id: profile.id, hash: profile.hash, source: profile.source };
+}
+
+async function inventoryArtifacts(root: string): Promise<ReleaseSeal["artifacts"]> {
+  const entries = await readdir(root, { recursive: true, withFileTypes: true });
+  const artifacts: ReleaseSeal["artifacts"] = [];
+  for (const entry of entries) {
+    const relative = path.relative(root, path.join(entry.parentPath, entry.name)).replaceAll("\\", "/");
+    if (relative === "release-seal.json" || relative === "editions" || relative.startsWith("editions/")) continue;
+    if (entry.isDirectory()) continue;
+    if (!entry.isFile()) throw new Error(`Unsupported artifact entry in dist: ${relative}`);
+    const contents = await readFile(path.join(root, relative));
+    artifacts.push({ path: relative, bytes: contents.byteLength, digest: sha256(contents) });
+  }
+  return artifacts.sort((left, right) => left.path.localeCompare(right.path));
+}
+
+function sortedRecord(record: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(record).sort(([left], [right]) => left.localeCompare(right)));
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

@@ -51,16 +51,27 @@ export async function checkProject(project: string, options: CheckOptions = {}):
   if (!sameFormats(manifest.formats, configuredFormats)) throw new Error(`Build manifest formats (${manifest.formats.join(", ")}) do not match configured outputs (${configuredFormats.join(", ")})`);
   if (!sameTheme(manifest.theme, theme)) throw new Error("Build manifest theme does not match the current project");
 
+  let printProfile: Awaited<ReturnType<typeof loadPrintProfile>> | undefined;
   if (configuredFormats.includes("pdf")) {
-    const profile = await loadPrintProfile(root, config.outputs.pdf);
-    if (!manifest.printProfile || manifest.printProfile.id !== profile.id || manifest.printProfile.hash !== profile.hash || manifest.printProfile.source !== profile.source) {
+    printProfile = await loadPrintProfile(root, config.outputs.pdf);
+    if (!manifest.printProfile || manifest.printProfile.id !== printProfile.id || manifest.printProfile.hash !== printProfile.hash || manifest.printProfile.source !== printProfile.source) {
       throw new Error("Build manifest print profile does not match the current project");
     }
   } else if (manifest.printProfile) {
     throw new Error("Build manifest has a print profile but PDF is not configured");
   }
 
-  if (options.seal) await assertSealMatches(dist, sourceHash, publication.id);
+  if (options.seal) {
+    await assertSealMatches(dist, {
+      publication,
+      sourceHash,
+      theme,
+      formats: manifest.formats,
+      toolVersions: manifest.toolVersions,
+      timestamp: manifest.timestamp,
+      ...(printProfile ? { printProfile } : {}),
+    });
+  }
 
   if (configuredFormats.includes("web")) await checkWeb(dist, publication.spine.map((section) => section.id), config.outputs.web?.reading ?? "paged");
   if (configuredFormats.includes("epub")) await checkEpub(path.join(dist, "book.epub"));

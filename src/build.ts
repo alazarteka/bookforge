@@ -166,11 +166,11 @@ async function buildOne(
     await writeFile(path.join(stage, "build-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
     await writeReleaseSeal(stage, {
       publication,
-      config,
       theme,
       sourceHash,
       formats,
       toolVersions: versions,
+      timestamp: manifest.timestamp,
       ...(printProfile ? { printProfile } : {}),
       ...(edition ? { editionId: edition.id } : {}),
     });

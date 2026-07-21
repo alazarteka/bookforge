@@ -78,6 +78,8 @@ test("build writes a release seal and gift/archive consume dist", async () => {
     const seal = await loadReleaseSeal(path.join(root, "dist/release-seal.json"));
     assert.equal(seal.kind, "bookforge-release-seal");
     assert.equal(seal.publicationId, "synthetic-book");
+    assert.equal(seal.chapters.length, 3);
+    assert.ok(seal.artifacts.some((artifact) => artifact.path === "build-manifest.json"));
     await checkProject(root, { seal: true });
     const gift = await giftProject(root, { to: "Sam", formats: ["web"], output: path.join(root, "gift.zip") });
     assert.equal(path.basename(gift), "gift.zip");
@@ -87,17 +89,39 @@ test("build writes a release seal and gift/archive consume dist", async () => {
     assert.match(archived, /archives/);
     const index = await readFile(path.join(root, "archives/INDEX.md"), "utf8");
     assert.match(index, /synthetic-book/);
+    const archivedManifest = await readFile(path.join(archived, "dist/build-manifest.json"));
+    await assert.rejects(archiveProject(root, "v1"), /already exists/i);
+    assert.deepEqual(await readFile(path.join(archived, "dist/build-manifest.json")), archivedManifest);
+    assert.equal(await readFile(path.join(root, "archives/INDEX.md"), "utf8"), index);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
 });
 
-test("proof diff reports unchanged chapters for identical manuscript", async () => {
-  const root = await tempProject();
+test("proof diff compares the current manuscript with the built seal", async () => {
+  const root = await tempProject(true);
   try {
-    const result = await proofDiff(root);
-    assert.equal(result.changed, 0);
-    assert.match(formatProofDiff(result), /No prose/);
+    await assert.rejects(proofDiff(root), /proof baseline.*bookforge build/i);
+    await buildProject(root, ["web"]);
+    const unchanged = await proofDiff(root);
+    assert.equal(unchanged.changed, 0);
+    assert.match(formatProofDiff(unchanged), /No prose/);
+    assert.equal((await proofDiff(root, root)).changed, 0);
+    assert.equal((await proofDiff(root, path.join(root, "dist"))).changed, 0);
+
+    const sealFile = path.join(root, "dist/release-seal.json");
+    const sealText = await readFile(sealFile, "utf8");
+    const legacySeal = JSON.parse(sealText) as Record<string, unknown>;
+    delete legacySeal.chapters;
+    await writeFile(sealFile, `${JSON.stringify(legacySeal)}\n`);
+    await assert.rejects(proofDiff(root), /compatible proof baseline.*bookforge build/i);
+    await writeFile(sealFile, sealText);
+
+    const chapter = path.join(root, "chapters/02-night-train.md");
+    await writeFile(chapter, `${await readFile(chapter, "utf8")}\nA newly revised ending.\n`);
+    const changed = await proofDiff(root);
+    assert.equal(changed.changed, 1);
+    assert.deepEqual(changed.chapters.filter((entry) => entry.change !== "same").map((entry) => entry.id), ["night-train"]);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
@@ -116,6 +140,71 @@ test("edition lattice builds a sibling edition overlay", async () => {
     assert.match(base, /Threshold/);
     assert.match(annotated, /Editor note/);
     assert.match(annotated, /Annotated Threshold/);
+    await checkProject(root, { seal: true });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("proof snapshots detect edits in every nested manuscript structure", async () => {
+  const root = await tempProject(true);
+  try {
+    const chapter = path.join(root, "chapters/02-night-train.md");
+    const original = `${await readFile(chapter, "utf8")}\n> A quoted platform announcement.\n`;
+    await writeFile(chapter, original);
+    await buildProject(root, ["web"]);
+    const edits: Array<[string, string]> = [
+      ["one brass key", "one silver key"],
+      ["Miren | 01:20", "Miren | 01:25"],
+      ["A tiny square used to test local raster assets", "A revised marker description"],
+      ["The signal was visible", "The distant signal was visible"],
+      ["The code block remains literal", "The revised code block remains literal"],
+      ["A quoted platform announcement", "A changed platform announcement"],
+    ];
+    for (const [before, after] of edits) {
+      await writeFile(chapter, original.replace(before, after));
+      const result = await proofDiff(root);
+      assert.equal(result.changed, 1, `expected nested edit ${before} to change the proof digest`);
+      assert.equal(result.chapters.find((entry) => entry.change !== "same")?.id, "night-train");
+    }
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("seal verification rejects metadata, snapshot, and artifact tampering", async () => {
+  const root = await tempProject(true);
+  try {
+    await buildProject(root, ["web"]);
+    const sealFile = path.join(root, "dist/release-seal.json");
+    const originalText = await readFile(sealFile, "utf8");
+    const original = JSON.parse(originalText) as Record<string, unknown>;
+    const tamper = async (mutate: (seal: Record<string, any>) => void): Promise<void> => {
+      const seal = structuredClone(original) as Record<string, any>;
+      mutate(seal);
+      await writeFile(sealFile, `${JSON.stringify(seal, null, 2)}\n`);
+      await assert.rejects(checkProject(root, { seal: true }), /release seal/i);
+      await writeFile(sealFile, originalText);
+    };
+
+    await tamper((seal) => { seal.contentDigest = "0".repeat(64); });
+    await tamper((seal) => { seal.theme.id = "tampered"; });
+    await tamper((seal) => { seal.formats = ["pdf"]; });
+    await tamper((seal) => { seal.chapters[0].words += 1; });
+    await tamper((seal) => { seal.artifacts.pop(); });
+    await tamper((seal) => { delete seal.chapters; });
+
+    const index = path.join(root, "dist/web/index.html");
+    const indexText = await readFile(index, "utf8");
+    await writeFile(index, `${indexText}\n<!-- tampered -->\n`);
+    await assert.rejects(checkProject(root, { seal: true }), /artifact inventory/i);
+    await writeFile(index, indexText);
+
+    const unexpected = path.join(root, "dist/unexpected.txt");
+    await writeFile(unexpected, "not sealed\n");
+    await assert.rejects(checkProject(root, { seal: true }), /artifact inventory/i);
+    await rm(unexpected);
+    await checkProject(root, { seal: true });
   } finally {
     await rm(root, { recursive: true, force: true });
   }

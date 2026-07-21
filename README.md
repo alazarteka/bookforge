@@ -116,6 +116,18 @@ stale or partial artifacts; pass `--seal` to verify the release seal and
 build; use `preview` for a live web-only editing view in `.bookforge-preview/`
 without replacing `dist/`.
 
+The release seal records a digest and word count for every chapter plus a
+byte-level inventory of the generated artifacts. `check --seal` verifies the
+seal metadata, chapter snapshot, and every base-edition file in `dist/`;
+sibling builds under `dist/editions/` carry and verify their own seals. Run
+`bookforge diff` after a build to compare the current manuscript with that
+sealed chapter snapshot. A missing or older seal cannot be used as a proof
+baseline and must be replaced with a fresh build.
+
+Archives are immutable snapshots. Reusing the same label on the same date is
+rejected instead of merging new output into an existing archive; choose a new
+`--label` for a distinct snapshot.
+
 A temporary `build --theme <id>` that differs from `book.yaml` also leaves a
 theme-mismatched build manifest that `check` rejects. Prefer `preview --theme
 <id>` for temporary inspection, then run an ordinary build with the configured

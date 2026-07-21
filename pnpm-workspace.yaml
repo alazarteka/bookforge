@@ -1,6 +1,8 @@
 minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   - "@vivliostyle/cli@11.1.0"
+  - "dompurify@3.4.12"
+  - "fast-uri@3.1.4"
 trustPolicy: no-downgrade
 blockExoticSubdeps: true
 

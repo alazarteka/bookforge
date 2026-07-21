@@ -47,6 +47,8 @@
   },
   "pnpm": {
     "overrides": {
+      "dompurify": "3.4.12",
+      "fast-uri": "3.1.4",
       "trim": "0.0.3",
       "prismjs": "1.30.0",
       "press-ready>uuid": "11.1.1"

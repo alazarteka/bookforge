@@ -1,7 +1,7 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { createPublication } from "./build.js";
-import { inlineText } from "./util.js";
+import { loadReleaseSeal, snapshotChapters, type ChapterSnapshot } from "./seal.js";
 
 export interface ChapterDiff {
   id: string;
@@ -21,12 +21,11 @@ export interface ProofDiffResult {
 
 export async function proofDiff(project: string, against?: string): Promise<ProofDiffResult> {
   const root = path.resolve(project);
-  const right = await snapshot(root);
-  const leftRoot = against ? path.resolve(against) : root;
+  const right = await snapshotProject(root);
   const left = against
-    ? await snapshotFromSeal(leftRoot)
-    : await snapshotFromSeal(path.join(root, "dist")).catch(async () => snapshot(root));
-  return compareSnapshots(left, against ? `against:${against}` : "dist-or-current", right, "current");
+    ? await snapshotPath(path.resolve(against))
+    : await snapshotBuilt(path.join(root, "dist"));
+  return compareSnapshots(left, left.label, right, right.label);
 }
 
 export async function driftReport(project: string): Promise<string> {
@@ -74,28 +73,42 @@ export async function driftReport(project: string): Promise<string> {
 
 interface Snapshot {
   label: string;
-  chapters: Array<{ id: string; title: string; words: number; text: string }>;
+  chapters: ChapterSnapshot[];
 }
 
-async function snapshot(projectRoot: string): Promise<Snapshot> {
+async function snapshotProject(projectRoot: string): Promise<Snapshot> {
   const { publication } = await createPublication(projectRoot, undefined, { includeDrafts: true, injectColophon: false });
-  return {
-    label: publication.id,
-    chapters: publication.spine.map((section) => {
-      const text = sectionText(section);
-      return { id: section.id, title: inlineText(section.title), words: text.split(/\s+/).filter(Boolean).length, text };
-    }),
-  };
+  return { label: publication.id, chapters: snapshotChapters(publication) };
 }
 
-async function snapshotFromSeal(distOrProject: string): Promise<Snapshot> {
-  // Prefer rebuilding from a project path; if this is a dist folder, fall back to chapter HTML titles.
+async function snapshotBuilt(dist: string): Promise<Snapshot> {
   try {
-    return await snapshot(distOrProject);
-  } catch {
-    const manifest = JSON.parse(await readFile(path.join(distOrProject, "build-manifest.json"), "utf8")) as { publicationId: string };
-    return { label: manifest.publicationId, chapters: [] };
+    const seal = await loadReleaseSeal(path.join(dist, "release-seal.json"));
+    return { label: `${seal.publicationId} (built)`, chapters: seal.chapters };
+  } catch (error) {
+    throw new Error(`No compatible proof baseline found at ${dist}. Run \`bookforge build\` to create a fresh release seal. ${errorMessage(error)}`);
   }
+}
+
+async function snapshotPath(candidate: string): Promise<Snapshot> {
+  if (!(await stat(candidate).catch(() => undefined))?.isDirectory()) {
+    throw new Error(`Proof comparison path is not a directory: ${candidate}`);
+  }
+  if ((await stat(path.join(candidate, "book.yaml")).catch(() => undefined))?.isFile()) {
+    try { return await snapshotProject(candidate); } catch (projectError) {
+      if ((await stat(path.join(candidate, "dist", "release-seal.json")).catch(() => undefined))?.isFile()) {
+        return await snapshotBuilt(path.join(candidate, "dist"));
+      }
+      throw projectError;
+    }
+  }
+  if ((await stat(path.join(candidate, "release-seal.json")).catch(() => undefined))?.isFile()) {
+    return await snapshotBuilt(candidate);
+  }
+  if ((await stat(path.join(candidate, "dist", "release-seal.json")).catch(() => undefined))?.isFile()) {
+    return await snapshotBuilt(path.join(candidate, "dist"));
+  }
+  throw new Error(`No project or proof baseline found at ${candidate}`);
 }
 
 function compareSnapshots(left: Snapshot, leftLabel: string, right: Snapshot, rightLabel: string): ProofDiffResult {
@@ -107,7 +120,7 @@ function compareSnapshots(left: Snapshot, leftLabel: string, right: Snapshot, ri
     const after = rightMap.get(id);
     if (!before && after) return { id, change: "added" as const, afterTitle: after.title, afterWords: after.words };
     if (before && !after) return { id, change: "removed" as const, beforeTitle: before.title, beforeWords: before.words };
-    if (before && after && before.text !== after.text) {
+    if (before && after && before.digest !== after.digest) {
       return { id, change: "changed" as const, beforeTitle: before.title, afterTitle: after.title, beforeWords: before.words, afterWords: after.words };
     }
     const same: ChapterDiff = { id, change: "same" };
@@ -125,16 +138,6 @@ function compareSnapshots(left: Snapshot, leftLabel: string, right: Snapshot, ri
   };
 }
 
-function sectionText(section: { title: Parameters<typeof inlineText>[0]; blocks: Array<{ type: string; children?: Parameters<typeof inlineText>[0]; value?: string; blocks?: unknown; items?: unknown }> }): string {
-  const parts = [inlineText(section.title)];
-  for (const block of section.blocks) {
-    if (block.type === "paragraph" || block.type === "heading") parts.push(inlineText(block.children ?? []));
-    else if (block.type === "codeBlock") parts.push(block.value ?? "");
-    else if (block.type === "sceneBreak") parts.push("---");
-  }
-  return parts.join("\n");
-}
-
 export function formatProofDiff(result: ProofDiffResult): string {
   const lines = [`Proof diff (${result.leftLabel} → ${result.rightLabel})`, `${result.changed} chapter change(s)`, ""];
   for (const chapter of result.chapters) {
@@ -145,4 +148,8 @@ export function formatProofDiff(result: ProofDiffResult): string {
   }
   if (result.changed === 0) lines.push("No prose/structure changes.");
   return `${lines.join("\n")}\n`;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
