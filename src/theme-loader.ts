@@ -19,7 +19,6 @@ const themeManifestSchema = z.object({
   assets: z.array(z.string().min(1)).default([]),
 }).strict();
 
-
 export interface BuiltInThemeInfo {
   id: string;
   name: string;

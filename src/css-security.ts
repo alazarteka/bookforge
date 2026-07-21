@@ -74,14 +74,6 @@ function validateImageSet(body: string, label: string): void {
   }
 }
 
-function validateAssetReferences(references: string[], assets: Set<string>, themeId: string): void {
-  for (const value of references) {
-    if (value.startsWith("#")) continue;
-    const expected = value.match(/^theme-assets\/([^/?#]+)$/)?.[1];
-    if (!expected || !assets.has(expected)) throw new Error(`Theme ${themeId}: CSS asset must be declared and referenced as theme-assets/<filename>: ${value}`);
-  }
-}
-
 function readCssIdentifier(css: string, start: number): { value: string; end: number } | undefined {
   if (!isCssNameStart(css[start])) return undefined;
   let value = "";

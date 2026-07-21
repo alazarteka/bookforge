@@ -27,6 +27,8 @@ test("lists and inspects only bundled themes", async () => {
   assert.equal(classic.name, "Classic");
   assert.deepEqual(classic.styles, ["tokens.css", "body.css", "web.css", "epub.css", "print.css", "cover.css"]);
   assert.ok(classic.assets.includes("fonts/source-serif-4-variable.woff2"));
+  // inspect is metadata-only (same path as list); it must match list without loading CSS/assets.
+  assert.deepEqual(classic, themes.find((theme) => theme.id === "classic"));
 });
 
 test("build theme overrides do not rewrite the project configuration", async () => {
