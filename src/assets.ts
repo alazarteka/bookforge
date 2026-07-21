@@ -2,7 +2,7 @@ import path from "node:path";
 import { mkdir } from "node:fs/promises";
 import sharp from "sharp";
 import type { Asset, Publication } from "./model.js";
-import { mediaTypeFor } from "./media-types.js";
+import { IMAGE_EXTENSIONS, mediaTypeFor } from "./media-types.js";
 import { visitPublication } from "./traversal.js";
 import { containedPath, ensureFile, fileHash, sha256 } from "./util.js";
 
@@ -18,6 +18,7 @@ export async function collectAssets(publication: Publication, projectRoot: strin
     const sourcePath = containedPath(projectRoot, ref.src);
     await ensureFile(sourcePath, "Image asset");
     const extension = path.extname(sourcePath).toLowerCase();
+    if (!IMAGE_EXTENSIONS.has(extension)) throw new Error(`Unsupported image format: ${ref.src}`);
     const mediaType = mediaTypeFor(extension);
     if (!mediaType) throw new Error(`Unsupported image format: ${ref.src}`);
     let asset = known.get(sourcePath);

@@ -237,6 +237,20 @@ test("createPublication rejects a broken chapter link", async () => {
   }
 });
 
+test("createPublication rejects non-image files used as images", async () => {
+  for (const name of ["marker.woff2", "marker.js"]) {
+    const root = await mkdtemp(path.join(tmpdir(), "bookforge-reject-image-ext-"));
+    try {
+      await cp(fixture, root, { recursive: true });
+      await writeFile(path.join(root, "assets", name), "not-an-image\n");
+      await writeFile(path.join(root, "chapters", "01-threshold.md"), `# Threshold\n\n![Not an image](../assets/${name})\n`);
+      await assert.rejects(createPublication(root), /Unsupported image format/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+});
+
 test("createPublication rejects an image symbolic link that escapes the project", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "bookforge-reject-image-link-"));
   const outside = await mkdtemp(path.join(tmpdir(), "bookforge-outside-"));

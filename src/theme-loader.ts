@@ -3,7 +3,7 @@ import path from "node:path";
 import YAML from "yaml";
 import { z } from "zod";
 import type { PublicationTheme, ThemeAsset } from "./model.js";
-import { mediaTypeFor } from "./media-types.js";
+import { THEME_ASSET_EXTENSIONS, mediaTypeFor } from "./media-types.js";
 import { containedPath, fileHash, sha256 } from "./util.js";
 
 const themeManifestSchema = z.object({
@@ -114,7 +114,9 @@ async function loadThemeCandidates(
       if (assetNameKeys.has(outputNameKey)) throw new Error(`Theme assets must have unique filenames, ignoring case: ${outputName}`);
       assetNames.add(outputName);
       assetNameKeys.add(outputNameKey);
-      const mediaType = mediaTypeFor(path.extname(outputName));
+      const extension = path.extname(outputName).toLowerCase();
+      if (!THEME_ASSET_EXTENSIONS.has(extension)) throw new Error(`Unsupported theme asset format: ${relative}`);
+      const mediaType = mediaTypeFor(extension);
       if (!mediaType) throw new Error(`Unsupported theme asset format: ${relative}`);
       assets.push({ sourcePath, outputName, mediaType, hash: await fileHash(sourcePath) });
     }

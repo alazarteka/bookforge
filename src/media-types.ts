@@ -2,6 +2,14 @@ import path from "node:path";
 
 export const IMAGE_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
 
+export const THEME_ASSET_EXTENSIONS = new Set([
+  ...IMAGE_EXTENSIONS,
+  ".woff2",
+  ".woff",
+  ".otf",
+  ".ttf",
+]);
+
 const mediaTypes: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
