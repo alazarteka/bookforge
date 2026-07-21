@@ -26,8 +26,6 @@ const validConfig = {
   outputs: { web: {} },
 };
 
-// --- Pure rejections (no external tools; always runnable) -------------------
-
 test("containedPath rejects an absolute path", () => {
   assert.throws(() => containedPath(path.resolve("project"), "/etc/passwd"), /Absolute paths are not allowed/);
 });
@@ -130,8 +128,6 @@ test("loadConfig rejects a chapter path that is not Markdown", async () => {
   }
 });
 
-// --- Pandoc-dependent rejections (parseMarkdown shells out to `pandoc`) ------
-
 // Writes `markdown` to a temp chapter and runs it through parseMarkdown; the
 // returned promise rejects for unsupported/unsafe constructs. Temp dir is always
 // cleaned up, even on rejection.
@@ -209,8 +205,6 @@ test("zipEpub rejects when a required EPUB member is missing", async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
-
-// --- Build-level rejections (run the pipeline, then fail) --------------------
 
 test("buildProject rejects an unknown output format", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "bookforge-reject-fmt-"));
