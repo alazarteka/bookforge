@@ -9,7 +9,7 @@ import { renderEpub } from "./epub.js";
 import { renderPdf } from "./pdf.js";
 import { loadTheme } from "./theme-loader.js";
 import { loadPrintProfile } from "./profile-loader.js";
-import { visitBlocks, visitPublication } from "./traversal.js";
+import { rewriteChapterLinks } from "./links.js";
 import { projectToolExecutable } from "./tool-paths.js";
 import { BOOKFORGE_VERSION, commandVersion, containedPath, run, sha256, sourceEpochDate } from "./util.js";
 
@@ -37,57 +37,11 @@ export async function createPublication(projectRoot: string, themeOverride?: str
     spine,
     assets: [],
   };
-  resolveChapterLinks(publication, projectRoot, config.chapters);
+  rewriteChapterLinks(publication, projectRoot, config.chapters);
   await collectAssets(publication, projectRoot);
   hashes.push(theme.hash);
   for (const asset of [...publication.assets].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) hashes.push(asset.hash);
   return { publication, config, theme, sourceHash: sha256(hashes.join("\n\0\n")) };
-}
-
-function resolveChapterLinks(publication: Publication, projectRoot: string, chapters: Array<{ id: string; path: string }>): void {
-  const chapterPaths = new Map(chapters.map((chapter) => [normalizedProjectPath(projectRoot, chapter.path), chapter.id]));
-  const headings = new Map(publication.spine.map((section) => [section.id, headingTargets(section)]));
-  const resolveFragment = (sectionId: string, fragment: string, href: string): string => {
-    const target = headings.get(sectionId)?.get(fragment);
-    if (!target) throw new Error(`Broken heading link: ${href}`);
-    return target;
-  };
-  visitPublication(publication, {
-    inline: (inline, context) => {
-      if (inline.type !== "link") return;
-      const sectionId = context.section?.id;
-      if (!sectionId) throw new Error("Link traversal requires a publication section");
-      const [file, fragment] = inline.href.split("#", 2);
-      if (!file && fragment) inline.href = `#${resolveFragment(sectionId, fragment, inline.href)}`;
-      else if (file && /\.md$/i.test(file)) {
-        const targetId = chapterPaths.get(normalizedProjectPath(projectRoot, file));
-        if (!targetId) throw new Error(`Broken chapter link: ${inline.href}`);
-        const targetFragment = fragment ? `#${resolveFragment(targetId, fragment, inline.href)}` : "";
-        inline.href = `${targetId}.md${targetFragment}`;
-      }
-    },
-  }, { includeTitles: true });
-}
-
-function normalizedProjectPath(projectRoot: string, value: string): string {
-  return path.relative(projectRoot, path.resolve(projectRoot, value)).replaceAll("\\", "/");
-}
-
-function headingTargets(section: Publication["spine"][number]): Map<string, string> {
-  const targets = new Map<string, string>();
-  const register = (id: string) => {
-    const prefix = `${section.id}--`;
-    targets.set(id, id);
-    if (id.startsWith(prefix)) targets.set(id.slice(prefix.length), id);
-  };
-  if (section.titleAnchor) register(section.titleAnchor);
-  targets.set(section.id, section.id);
-  visitBlocks(section.blocks, {
-    block: (block) => {
-      if (block.type === "heading") register(block.id);
-    },
-  });
-  return targets;
 }
 
 function isFormat(value: string): value is Format {

@@ -85,3 +85,30 @@ test("lint checks local links and images but leaves external link fragments alon
     assert.ok(result.issues.some((issue) => /Image "chapters\/missing.png" is missing/.test(issue.message)));
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test("lint reports broken same- and cross-chapter heading fragments", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-lint-headings-"));
+  try {
+    await mkdir(path.join(root, "chapters"));
+    await writeFile(path.join(root, "book.yaml"), [
+      "schema: 1",
+      "id: book",
+      "title: A Book",
+      "authors:",
+      "  - name: Author",
+      "chapters:",
+      "  - id: one",
+      "    path: chapters/01-one.md",
+      "  - id: two",
+      "    path: chapters/02-two.md",
+      "outputs:",
+      "  web: {}",
+      "",
+    ].join("\n"));
+    await writeFile(path.join(root, "chapters", "01-one.md"), "# One\n\n## Present\n\n[Missing](#no-such-id) [Cross](02-two.md#no-such-id)\n");
+    await writeFile(path.join(root, "chapters", "02-two.md"), "# Two\n\n## Elsewhere\n");
+    const result = await lintProject(root);
+    assert.ok(result.issues.some((issue) => /Broken heading link "#no-such-id"/.test(issue.message)));
+    assert.ok(result.issues.some((issue) => /Broken heading link "chapters\/02-two\.md#no-such-id"/.test(issue.message)));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
