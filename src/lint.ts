@@ -6,6 +6,7 @@ import { bookConfigSchema } from "./config.js";
 import type { Inline, Section } from "./model.js";
 import { parseMarkdown } from "./pandoc.js";
 import { collectLinkIssues } from "./links.js";
+import { IMAGE_EXTENSIONS } from "./media-types.js";
 import { visitSection } from "./traversal.js";
 import { containedPath, ensureFile } from "./util.js";
 
@@ -92,7 +93,7 @@ async function lintImages(root: string, sections: Array<{ chapter: { path: strin
         issues.push({ file: chapter.path, message: `Image "${image.src}" is missing. Add the file inside the project or correct the path.` });
         continue;
       }
-      if (!new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]).has(path.extname(file).toLowerCase())) {
+      if (!IMAGE_EXTENSIONS.has(path.extname(file).toLowerCase())) {
         issues.push({ file: chapter.path, message: `Unsupported image format "${image.src}". Use JPG, PNG, WebP, or GIF.` });
       }
     }

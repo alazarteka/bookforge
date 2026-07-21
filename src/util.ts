@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { realpathSync } from "node:fs";
-import { mkdir, readFile, stat } from "node:fs/promises";
+import { mkdir, readFile, rename, rm, stat } from "node:fs/promises";
 import path from "node:path";
 
 export const BOOKFORGE_VERSION = "0.1.0";
@@ -102,4 +102,16 @@ export function sourceEpochDate(): Date {
   const seconds = Number(raw);
   if (!Number.isFinite(seconds) || seconds < 0) throw new Error("SOURCE_DATE_EPOCH must be a non-negative number");
   return new Date(seconds * 1000);
+}
+
+export async function atomicReplaceDirectory(stage: string, target: string, previous: string): Promise<void> {
+  await rm(previous, { recursive: true, force: true });
+  await rename(target, previous).catch(() => undefined);
+  try {
+    await rename(stage, target);
+  } catch (error) {
+    await rename(previous, target).catch(() => undefined);
+    throw error;
+  }
+  await rm(previous, { recursive: true, force: true });
 }

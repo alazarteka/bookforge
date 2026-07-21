@@ -62,7 +62,7 @@ export function renderBlocks(blocks: Block[], context: HtmlContext): string {
   }).join("\n");
 }
 
-const collectFootnotes = (section: Section): Array<Extract<Inline, { type: "footnote" }>> => {
+function collectFootnotes(section: Section): Array<Extract<Inline, { type: "footnote" }>> {
   const notes: Array<Extract<Inline, { type: "footnote" }>> = [];
   visitSection(section, {
     inline: (inline) => {
@@ -70,9 +70,9 @@ const collectFootnotes = (section: Section): Array<Extract<Inline, { type: "foot
     },
   });
   return notes;
-};
+}
 
-const renderFootnotes = (notes: Array<Extract<Inline, { type: "footnote" }>>, context: HtmlContext): string => {
+function renderFootnotes(notes: Array<Extract<Inline, { type: "footnote" }>>, context: HtmlContext): string {
   if (!notes.length) return "";
   const sectionSemantic = context.flavor === "epub" ? ` epub:type="footnotes"` : ` role="doc-endnotes"`;
   const noteSemantic = context.flavor === "epub" ? ` epub:type="footnote"` : ` role="doc-endnote"`;
@@ -91,9 +91,7 @@ const renderFootnotes = (notes: Array<Extract<Inline, { type: "footnote" }>>, co
 }
 
 // Chapter openers show a numeral for body chapters and a part label for parts;
-// front/back matter carry no kicker (their title stands alone). This replaces the
-// old hard-coded "Chapter" word — redundant above titles like "Chapter I" — and the
-// raw role string ("frontmatter") that used to leak onto the page.
+// front/back matter carry no kicker (their title stands alone).
 export function sectionKickers(spine: Section[]): Map<string, string> {
   const kickers = new Map<string, string>();
   let chapter = 0;
@@ -106,7 +104,6 @@ export function sectionKickers(spine: Section[]): Map<string, string> {
   return kickers;
 }
 
-// Human-readable role for the table of contents; body chapters get no tag.
 export const roleLabels: Record<Section["role"], string> = {
   frontmatter: "Front matter",
   bodymatter: "",
@@ -114,10 +111,22 @@ export const roleLabels: Record<Section["role"], string> = {
   part: "Part",
 };
 
-// The typographic cover, shared by web and EPUB so both formats present the same mark.
-export function coverMarkup(publication: Publication): string {
+export function coverMarkup(publication: Publication, variant: "screen" | "print" = "screen"): string {
   const { title, subtitle, authors } = publication.metadata;
-  return `<section class="cover" id="top"><div class="cover-inner"><div class="sigil" aria-hidden="true"></div><p class="cover-label">A Bookforge edition</p><h1 class="cover-title">${escapeHtml(title)}</h1>${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ""}<p class="authors">${authors.map(escapeHtml).join(" · ")}</p></div></section>`;
+  const sectionClass = variant === "print" ? "print-cover" : "cover";
+  const innerClass = variant === "print" ? "print-cover-inner" : "cover-inner";
+  const labelClass = variant === "print" ? "print-cover-label" : "cover-label";
+  const titleClass = variant === "print" ? "" : ` class="cover-title"`;
+  const idAttr = variant === "screen" ? ` id="top"` : "";
+  return `<section class="${sectionClass}"${idAttr}><div class="${innerClass}"><div class="sigil" aria-hidden="true"></div><p class="${labelClass}">A Bookforge edition</p><h1${titleClass}>${escapeHtml(title)}</h1>${subtitle ? `<p class="subtitle">${escapeHtml(subtitle)}</p>` : ""}<p class="authors">${authors.map(escapeHtml).join(" · ")}</p></div></section>`;
+}
+
+export function tocListItems(publication: Publication, kickers: Map<string, string>, hrefFor: (id: string) => string): string {
+  return publication.spine.map((section) => {
+    const index = kickers.get(section.id) ?? "";
+    const role = roleLabels[section.role];
+    return `<li><a href="${hrefFor(section.id)}"><span class="toc-index">${escapeHtml(index)}</span><span class="toc-title">${escapeHtml(inlineText(section.title))}</span><span class="toc-role">${escapeHtml(role)}</span></a></li>`;
+  }).join("");
 }
 
 // A title that already names its own number ("Chapter I", "Part 2", "IV.") makes the

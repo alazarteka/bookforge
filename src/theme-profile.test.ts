@@ -229,6 +229,28 @@ assets: []
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+test("rejects theme assets that are not fonts or images", async () => {
+  for (const asset of ["assets/script.js", "assets/page.html", "assets/extra.css"]) {
+    const root = await mkdtemp(path.join(tmpdir(), "bookforge-theme-asset-"));
+    try {
+      const themeRoot = path.join(root, "theme");
+      await mkdir(path.join(themeRoot, "assets"), { recursive: true });
+      await writeFile(path.join(themeRoot, "theme.yaml"), `schema: 1
+id: unsafe-assets
+name: Unsafe Assets
+version: 1.0.0
+styles: { tokens: style.css, body: style.css, web: style.css, epub: style.css, print: style.css, cover: style.css }
+assets: [${asset}]
+`);
+      await writeFile(path.join(themeRoot, "style.css"), "body {}\n");
+      await writeFile(path.join(themeRoot, asset), "payload\n");
+      await assert.rejects(loadTheme(root, "unsafe-assets"), /Unsupported theme asset format/);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+});
+
 test("rejects theme asset names that collide ignoring case", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "bookforge-theme-case-"));
   try {

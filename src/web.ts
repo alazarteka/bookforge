@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { Publication, PublicationTheme } from "./model.js";
-import { coverMarkup, roleLabels, sectionArticle, sectionKickers } from "./html.js";
+import { coverMarkup, sectionArticle, sectionKickers, tocListItems } from "./html.js";
 import { themeCss, writeThemeAssets } from "./theme-loader.js";
 import { escapeHtml, inlineText } from "./util.js";
 import { writeAssets } from "./assets.js";
@@ -53,12 +53,7 @@ function bar(publication: Publication, opts: { home: string; contents?: string }
 }
 
 function tocSection(publication: Publication, kickers: Map<string, string>, hrefFor: (id: string) => string): string {
-  const rows = publication.spine.map((section) => {
-    const index = kickers.get(section.id) ?? "";
-    const role = roleLabels[section.role];
-    return `<li><a href="${hrefFor(section.id)}"><span class="toc-index">${escapeHtml(index)}</span><span class="toc-title">${escapeHtml(inlineText(section.title))}</span><span class="toc-role">${escapeHtml(role)}</span></a></li>`;
-  }).join("");
-  return `<section class="toc" id="contents"><h2>Contents</h2><ol>${rows}</ol></section>`;
+  return `<section class="toc" id="contents"><h2>Contents</h2><ol>${tocListItems(publication, kickers, hrefFor)}</ol></section>`;
 }
 
 function documentShell(title: string, language: string, body: string, cssHref: string, scriptHref?: string): string {
