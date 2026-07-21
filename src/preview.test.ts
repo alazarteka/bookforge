@@ -6,9 +6,28 @@ import type { FSWatcher } from "node:fs";
 import { access, cp, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { generateBuiltInThemePreviews, listenPreviewServer, previewContentType, rebuildPreview, shouldRebuildPreview, stopPreviewServer, stopPreviewWatcher } from "./preview.js";
+import { generateBuiltInThemePreviews, isPreviewMissing, listenPreviewServer, previewContentType, rebuildPreview, shouldRebuildPreview, stopPreviewServer, stopPreviewWatcher } from "./preview.js";
+import { containedPath } from "./util.js";
 
 const fixture = path.resolve(import.meta.dirname, "..", "tests", "fixtures", "synthetic");
+
+test("isPreviewMissing maps missing and invalid paths to 404, not unexpected errors", () => {
+  assert.equal(isPreviewMissing(new URIError("bad percent encoding")), true);
+  assert.equal(isPreviewMissing(Object.assign(new Error("missing"), { code: "ENOENT" })), true);
+  assert.equal(isPreviewMissing(Object.assign(new Error("not a dir"), { code: "ENOTDIR" })), true);
+  try {
+    containedPath(path.resolve("project"), "/etc/passwd");
+  } catch (error) {
+    assert.equal(isPreviewMissing(error), true);
+  }
+  try {
+    containedPath(path.resolve("project"), "../escape");
+  } catch (error) {
+    assert.equal(isPreviewMissing(error), true);
+  }
+  assert.equal(isPreviewMissing(new Error("socket failed")), false);
+  assert.equal(isPreviewMissing(Object.assign(new Error("denied"), { code: "EACCES" })), false);
+});
 
 test("preview watches supported source assets and serves them with their media types", () => {
   assert.equal(shouldRebuildPreview("theme/fonts/reader.woff2"), true);

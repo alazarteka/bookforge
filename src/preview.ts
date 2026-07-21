@@ -158,7 +158,7 @@ export async function generateBuiltInThemePreviews(root: string, render: typeof 
   }
 }
 
-function isPreviewMissing(error: unknown): boolean {
+export function isPreviewMissing(error: unknown): boolean {
   if (error instanceof URIError) return true;
   if (error instanceof Error) {
     const message = error.message;

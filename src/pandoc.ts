@@ -140,6 +140,17 @@ function adaptBlock(node: PandocNode, state: State): Block {
   throw new Error(`${state.chapterId}: unsupported block construct ${node.t}`);
 }
 
+/** Exposed for unit tests of fail-closed table adaptation. */
+export function adaptTableShape(value: unknown, chapterId = "chapter"): Block {
+  return adaptTable(value, {
+    chapterId,
+    projectRoot: ".",
+    sourceDirectory: ".",
+    headings: new Map(),
+    footnotes: 0,
+  });
+}
+
 function adaptTable(value: unknown, state: State): Block {
   if (!Array.isArray(value) || value.length < 5) throw new Error(`${state.chapterId}: malformed table`);
   const head = value[3];
@@ -164,8 +175,10 @@ function adaptTable(value: unknown, state: State): Block {
   };
   const headerRows = head[1] as unknown[];
   const headers = headerRows[0] ? rowCells(headerRows[0]) : [];
-  const rows = (bodies as Array<[unknown, number, unknown[], unknown[]]>).flatMap((body) => {
-    if (!Array.isArray(body[2]) || !Array.isArray(body[3])) throw new Error(`${state.chapterId}: malformed table body`);
+  const rows = (bodies as unknown[]).flatMap((body) => {
+    if (!Array.isArray(body) || !Array.isArray(body[2]) || !Array.isArray(body[3])) {
+      throw new Error(`${state.chapterId}: malformed table body`);
+    }
     return [...body[2], ...body[3]];
   }).map(rowCells);
   return { type: "table", headers, rows };

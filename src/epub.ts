@@ -57,7 +57,7 @@ export async function renderEpub(publication: Publication, theme: PublicationThe
   }
 }
 
-async function zipEpub(root: string, outputFile: string): Promise<void> {
+export async function zipEpub(root: string, outputFile: string): Promise<void> {
   const zip = new ZipFile();
   const mtime = sourceEpochDate();
   zip.addBuffer(Buffer.from("application/epub+zip"), "mimetype", { compress: false, mtime, mode: 0o100644 });

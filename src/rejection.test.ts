@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cp, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { containedPath } from "./util.js";
 import { bookConfigSchema, loadConfig } from "./config.js";
-import { parseMarkdown } from "./pandoc.js";
+import { adaptTableShape, parseMarkdown } from "./pandoc.js";
 import { buildProject, createPublication } from "./build.js";
+import { zipEpub } from "./epub.js";
 
 // Bookforge's principle (docs/SCOPE.md §2, §5, §10): unsupported or unsafe input
 // must fail with a useful diagnostic rather than silently degrading. These tests
@@ -183,6 +184,30 @@ test("parseMarkdown rejects an embedded data-URI image", async () => {
 
 test("parseMarkdown rejects a heading hierarchy jump", async () => {
   await assert.rejects(parseSource("# Title\n\n## Section\n\n#### Deep\n"), /heading hierarchy jumps from level 2 to 4/);
+});
+
+test("adaptTableShape rejects a null table body entry with a diagnostic", () => {
+  const head = [null, [[null, []]]];
+  const bodies = [null];
+  assert.throws(() => adaptTableShape([null, null, null, head, bodies]), /chapter: malformed table body/);
+});
+
+test("zipEpub rejects when a required EPUB member is missing", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-reject-epub-zip-"));
+  try {
+    await mkdir(path.join(root, "META-INF"), { recursive: true });
+    await mkdir(path.join(root, "EPUB"), { recursive: true });
+    await writeFile(path.join(root, "META-INF", "container.xml"), "<container/>\n");
+    await writeFile(path.join(root, "EPUB", "package.opf"), "<package/>\n");
+    await writeFile(path.join(root, "EPUB", "nav.xhtml"), "<nav/>\n");
+    // styles.css intentionally omitted — zipEpub must throw, not soft-skip.
+    await assert.rejects(zipEpub(root, path.join(root, "out.epub")), (error: NodeJS.ErrnoException) => {
+      assert.equal(error.code, "ENOENT");
+      return true;
+    });
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 // --- Build-level rejections (run the pipeline, then fail) --------------------
