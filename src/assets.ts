@@ -74,7 +74,10 @@ function encodeAsset(asset: Asset): Promise<string> {
       // Encode via toFile so format/extension handling matches prior builds.
       await sharp(asset.sourcePath, { animated: asset.mediaType === "image/gif" }).rotate().toFile(cached);
       return cached;
-    })();
+    })().catch((error) => {
+      encodedAssetJobs.delete(cacheKey);
+      throw error;
+    });
     encodedAssetJobs.set(cacheKey, job);
   }
   return job;
