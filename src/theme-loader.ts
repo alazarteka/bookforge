@@ -139,5 +139,5 @@ export function themeCss(theme: PublicationTheme, flavor: "web" | "epub" | "prin
 export async function writeThemeAssets(theme: PublicationTheme, directory: string): Promise<void> {
   if (!theme.assets.length) return;
   await mkdir(directory, { recursive: true });
-  for (const asset of theme.assets) await copyFile(asset.sourcePath, path.join(directory, asset.outputName));
+  await Promise.all(theme.assets.map((asset) => copyFile(asset.sourcePath, path.join(directory, asset.outputName))));
 }

@@ -14,7 +14,7 @@ import { projectToolExecutable } from "./tool-paths.js";
 import { buildColophonSection, shouldInjectColophon } from "./colophon.js";
 import { writeReleaseSeal } from "./seal.js";
 import { writeZineGuide } from "./zine.js";
-import { BOOKFORGE_VERSION, atomicReplaceDirectory, commandVersion, containedPath, run, sha256, sourceEpochDate } from "./util.js";
+import { BOOKFORGE_VERSION, atomicReplaceDirectory, commandVersion, containedPath, defaultConcurrency, mapPool, run, sha256, sourceEpochDate } from "./util.js";
 
 export type Format = "web" | "epub" | "pdf";
 
@@ -35,13 +35,20 @@ export async function createPublication(
   const theme = await loadTheme(projectRoot, themeId);
   const includeDrafts = options.includeDrafts ?? false;
   const selectedChapters = selectChapters(config, edition, includeDrafts);
-  const hashes: string[] = [await readFile(path.join(projectRoot, "book.yaml"), "utf8"), edition?.id ?? ""];
-  const spine: Section[] = [];
-  for (const chapter of selectedChapters) {
+  const bookYaml = await readFile(path.join(projectRoot, "book.yaml"), "utf8");
+  const hashes: string[] = [bookYaml, edition?.id ?? ""];
+  // Parse chapters concurrently; Pandoc process startup dominates multi-chapter books.
+  const parsed = await mapPool(selectedChapters, defaultConcurrency(), async (chapter) => {
     const relativePath = edition?.overlays?.[chapter.id] ?? chapter.path;
     const file = containedPath(projectRoot, relativePath);
-    hashes.push(await readFile(file, "utf8"));
-    spine.push(await parseMarkdown(file, projectRoot, chapter.id, chapter.role, chapter.title, chapter.layout));
+    const source = await readFile(file, "utf8");
+    const section = await parseMarkdown(file, projectRoot, chapter.id, chapter.role, chapter.title, chapter.layout, source);
+    return { source, section };
+  });
+  const spine: Section[] = [];
+  for (const { source, section } of parsed) {
+    hashes.push(source);
+    spine.push(section);
   }
   const publication: Publication = {
     schemaVersion: 1,
@@ -141,17 +148,28 @@ async function buildOne(
   if (!publication.spine.length) throw new Error("No chapters to build. Mark chapters ready/locked or pass --include-drafts.");
   const stage = await mkdtemp(path.join(projectRoot, ".bookforge-stage-"));
   try {
-    if (formats.includes("web")) await renderWeb(publication, theme, path.join(stage, "web"), config.outputs.web?.reading ?? "paged");
-    if (formats.includes("epub")) {
-      const epub = path.join(stage, "book.epub");
-      await renderEpub(publication, theme, epub);
-      const checked = await run("epubcheck", [epub], { quiet: true });
-      if (checked.code !== 0) throw new Error(`EPUBCheck failed:\n${checked.stdout}\n${checked.stderr}`);
-    }
     const printProfile = formats.includes("pdf") ? await loadPrintProfile(projectRoot, config.outputs.pdf) : undefined;
-    if (printProfile) await renderPdf(publication, theme, printProfile, stage, path.join(stage, "book.pdf"));
+    // Web, EPUB, and PDF share one publication IR; render them concurrently.
+    const renderJobs: Array<Promise<void>> = [];
+    if (formats.includes("web")) {
+      renderJobs.push(renderWeb(publication, theme, path.join(stage, "web"), config.outputs.web?.reading ?? "paged"));
+    }
+    if (formats.includes("epub")) {
+      renderJobs.push((async () => {
+        const epub = path.join(stage, "book.epub");
+        await renderEpub(publication, theme, epub);
+        const checked = await run("epubcheck", [epub], { quiet: true });
+        if (checked.code !== 0) throw new Error(`EPUBCheck failed:\n${checked.stdout}\n${checked.stderr}`);
+      })());
+    }
+    if (printProfile) {
+      renderJobs.push(renderPdf(publication, theme, printProfile, stage, path.join(stage, "book.pdf")));
+    }
+    const [, versions] = await Promise.all([
+      Promise.all(renderJobs),
+      toolVersions(formats),
+    ]);
     if (printProfile?.imposition === "booklet") await writeZineGuide(stage, publication, printProfile);
-    const versions = await toolVersions(formats);
     const manifest: BuildManifest = {
       bookforgeVersion: BOOKFORGE_VERSION,
       schemaVersion: 1,
@@ -212,10 +230,9 @@ async function toolVersions(formats: Format[]): Promise<Record<string, string>> 
   const commands: Array<[string, string, string[]]> = [["node", "node", ["--version"]], ["pandoc", "pandoc", ["--version"]]];
   if (formats.includes("epub")) commands.push(["epubcheck", "epubcheck", ["--version"]]);
   if (formats.includes("pdf")) commands.push(["vivliostyle", projectToolExecutable(path.resolve(import.meta.dirname, ".."), "vivliostyle"), ["--version"]]);
-  const versions: Record<string, string> = {};
-  for (const [key, command, args] of commands) {
+  const entries = await Promise.all(commands.map(async ([key, command, args]) => {
     const result = await run(command, args, { cwd: path.resolve(import.meta.dirname, ".."), quiet: true });
-    versions[key] = result.code === 0 ? commandVersion(result.stdout || result.stderr) : "unavailable";
-  }
-  return versions;
+    return [key, result.code === 0 ? commandVersion(result.stdout || result.stderr) : "unavailable"] as const;
+  }));
+  return Object.fromEntries(entries);
 }

@@ -3,7 +3,7 @@ import path from "node:path";
 import type { Publication, PublicationTheme } from "./model.js";
 import { coverMarkup, sectionArticle, sectionKickers, tocListItems } from "./html.js";
 import { themeCss, writeThemeAssets } from "./theme-loader.js";
-import { escapeHtml, inlineText } from "./util.js";
+import { escapeHtml, inlineText, mapPool, defaultConcurrency } from "./util.js";
 import { writeAssets } from "./assets.js";
 
 // This is emitted both before the stylesheet and in reader.js. Keeping it in one
@@ -64,10 +64,12 @@ export type WebReading = "paged" | "continuous";
 
 export async function renderWeb(publication: Publication, theme: PublicationTheme, directory: string, reading: WebReading = "paged"): Promise<void> {
   await mkdir(directory, { recursive: true });
-  await writeFile(path.join(directory, "reader.css"), themeCss(theme, "web"));
-  await writeFile(path.join(directory, "reader.js"), readerJs);
-  await writeThemeAssets(theme, path.join(directory, "theme-assets"));
-  await writeAssets(publication.assets, path.join(directory, "assets"));
+  await Promise.all([
+    writeFile(path.join(directory, "reader.css"), themeCss(theme, "web")),
+    writeFile(path.join(directory, "reader.js"), readerJs),
+    writeThemeAssets(theme, path.join(directory, "theme-assets")),
+    writeAssets(publication.assets, path.join(directory, "assets")),
+  ]);
   const assets = new Map(publication.assets.map((asset) => [asset.id, asset]));
   const kickers = sectionKickers(publication.spine);
 
@@ -83,13 +85,12 @@ export async function renderWeb(publication: Publication, theme: PublicationThem
   await writeFile(path.join(directory, "index.html"), documentShell(publication.metadata.title, publication.metadata.language, landing, "reader.css", "reader.js"));
   const chaptersDirectory = path.join(directory, "chapters");
   await mkdir(chaptersDirectory, { recursive: true });
-  for (let index = 0; index < publication.spine.length; index++) {
-    const section = publication.spine[index]!;
+  await mapPool(publication.spine, defaultConcurrency(16), async (section, index) => {
     const context = { flavor: "web" as const, assets, chapterFile: (id: string) => `${id}.html`, assetPrefix: "../assets/" };
     const previous = publication.spine[index - 1];
     const next = publication.spine[index + 1];
     const nav = `<nav class="chapter-nav" aria-label="Chapter navigation"><span class="prev">${previous ? `<a rel="prev" href="${previous.id}.html">← ${escapeHtml(inlineText(previous.title))}</a>` : ""}</span><span class="next">${next ? `<a rel="next" href="${next.id}.html">${escapeHtml(inlineText(next.title))} →</a>` : `<a href="../index.html">Contents ↑</a>`}</span></nav>`;
     const body = `${bar(publication, { home: "../index.html" })}<main>${sectionArticle(section, publication, context, kickers.get(section.id) ?? "")}${nav}</main>`;
     await writeFile(path.join(chaptersDirectory, `${section.id}.html`), documentShell(`${inlineText(section.title)} — ${publication.metadata.title}`, publication.metadata.language, body, "../reader.css", "../reader.js"));
-  }
+  });
 }

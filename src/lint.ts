@@ -8,7 +8,7 @@ import { parseMarkdown } from "./pandoc.js";
 import { collectLinkIssues } from "./links.js";
 import { IMAGE_EXTENSIONS } from "./media-types.js";
 import { visitSection } from "./traversal.js";
-import { containedPath, ensureFile } from "./util.js";
+import { containedPath, defaultConcurrency, ensureFile, mapPool } from "./util.js";
 
 export interface LintOptions {
   /** When true, draft chapters are lint errors. When false, drafts are ignored. */
@@ -83,7 +83,7 @@ export async function lintProject(project: string, options: LintOptions = {}): P
     });
   }
 
-  const parsedChapters = await Promise.all(usable.map(async (chapter) => {
+  const parsedChapters = await mapPool(usable, defaultConcurrency(), async (chapter) => {
     try {
       return {
         chapter,
@@ -93,7 +93,7 @@ export async function lintProject(project: string, options: LintOptions = {}): P
       issues.push({ file: chapter.path, message: withoutChapterId(errorMessage(error), chapter.id) });
       return undefined;
     }
-  }));
+  });
   const sections = parsedChapters.filter((entry): entry is { chapter: UsableChapter; section: Section } => Boolean(entry));
   issues.push(...collectLinkIssues(root, sections));
   await lintImages(root, sections, issues);

@@ -13,8 +13,9 @@ export async function parseMarkdown(
   role: SectionRole,
   configuredTitle?: string,
   layout: ChapterLayout = "prose",
+  sourceText?: string,
 ): Promise<Section> {
-  const source = await readFile(file, "utf8");
+  const source = sourceText ?? await readFile(file, "utf8");
   const rawHtml = /^\s*<\/?[A-Za-z][^>]*>/m.exec(source);
   if (rawHtml?.index !== undefined) throw sourceError(file, source, rawHtml.index, "raw HTML is not supported; write literal angle-bracket text as inline code, for example `<option>`.");
   const remoteImage = /!\[[^\]]*\]\(https?:\/\//i.exec(source);

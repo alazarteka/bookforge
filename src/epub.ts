@@ -6,7 +6,7 @@ import { ZipFile } from "yazl";
 import type { Publication, PublicationTheme } from "./model.js";
 import { coverMarkup, sectionArticle, sectionKickers } from "./html.js";
 import { themeCss, writeThemeAssets } from "./theme-loader.js";
-import { escapeXml, inlineText, sourceEpochDate } from "./util.js";
+import { escapeXml, inlineText, mapPool, defaultConcurrency, sourceEpochDate } from "./util.js";
 import { writeAssets } from "./assets.js";
 
 const containerXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -72,18 +72,20 @@ export async function renderEpub(publication: Publication, theme: PublicationThe
     await mkdir(path.join(epubDir, "assets"), { recursive: true });
     await writeFile(path.join(work, "mimetype"), "application/epub+zip");
     await writeFile(path.join(work, "META-INF", "container.xml"), containerXml);
-    await writeFile(path.join(epubDir, "styles.css"), themeCss(theme, "epub"));
-    await writeAssets(publication.assets, path.join(epubDir, "assets"));
-    await writeThemeAssets(theme, path.join(epubDir, "theme-assets"));
+    await Promise.all([
+      writeFile(path.join(epubDir, "styles.css"), themeCss(theme, "epub")),
+      writeAssets(publication.assets, path.join(epubDir, "assets")),
+      writeThemeAssets(theme, path.join(epubDir, "theme-assets")),
+    ]);
     const assets = new Map(publication.assets.map((asset) => [asset.id, asset]));
     const kickers = sectionKickers(publication.spine);
     const svgSections = new Set<string>();
-    for (const section of publication.spine) {
+    await mapPool(publication.spine, defaultConcurrency(16), async (section) => {
       const context = { flavor: "epub" as const, assets, chapterFile: (id: string) => `${id}.xhtml`, assetPrefix: "assets/" };
       const article = sectionArticle(section, publication, context, kickers.get(section.id) ?? "");
       if (article.includes("<svg")) svgSections.add(section.id);
       await writeFile(path.join(epubDir, `${section.id}.xhtml`), xhtml(inlineText(section.title), publication.metadata.language, article));
-    }
+    });
     await writeFile(path.join(epubDir, "cover.xhtml"), xhtml("Cover", publication.metadata.language, coverMarkup(publication)));
     const navItems = publication.spine.map((section) => `<li><a href="${section.id}.xhtml">${escapeXml(inlineText(section.title))}</a></li>`).join("");
     const beginReading = publication.spine.find((section) => section.role === "bodymatter");
@@ -113,9 +115,10 @@ export async function zipEpub(root: string, outputFile: string): Promise<void> {
     })
     .filter((name) => !files.includes(name))
     .sort();
-  for (const name of [...files, ...entries]) {
-    const data = await readFile(path.join(root, name));
-    zip.addBuffer(data, name, { mtime, mode: 0o100644 });
+  const names = [...files, ...entries];
+  const buffers = await Promise.all(names.map((name) => readFile(path.join(root, name))));
+  for (let index = 0; index < names.length; index++) {
+    zip.addBuffer(buffers[index]!, names[index]!, { mtime, mode: 0o100644 });
   }
   await mkdir(path.dirname(outputFile), { recursive: true });
   await new Promise<void>((resolve, reject) => {

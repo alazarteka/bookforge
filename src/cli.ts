@@ -1,18 +1,6 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
 import path from "node:path";
-import { archiveProject } from "./archive.js";
-import { buildProject } from "./build.js";
-import { checkProject } from "./check.js";
-import { driftReport, formatProofDiff, proofDiff } from "./diff.js";
-import { doctor } from "./doctor.js";
-import { giftProject } from "./gift.js";
-import { importedChapterCount, initProject } from "./init.js";
-import { lintProject } from "./lint.js";
-import { generateBuiltInThemePreviews, previewProject } from "./preview.js";
-import { formatPulse, statusProject } from "./status.js";
-import { inspectBuiltInTheme, listBuiltInThemes } from "./theme-loader.js";
-import { testBuiltInThemes } from "./theme-contract.js";
 
 const help = `Bookforge — beautiful local-first publishing
 
@@ -39,6 +27,7 @@ async function main(): Promise<void> {
   const [command, ...rest] = process.argv.slice(2);
   if (!command || command === "help" || command === "--help" || command === "-h") { console.log(help); return; }
   if (command === "init") {
+    const { importedChapterCount, initProject } = await import("./init.js");
     const parsed = parseArgs({ args: rest, allowPositionals: true, options: {
       "from-existing": { type: "string" }, id: { type: "string" }, title: { type: "string" }, author: { type: "string", multiple: true }, language: { type: "string" }, "dry-run": { type: "boolean" },
     } });
@@ -56,6 +45,7 @@ async function main(): Promise<void> {
     console.log(options.dryRun ? `Would create ${root} with ${chapters} chapter${chapters === 1 ? "" : "s"}; no files were changed.` : `Created ${root}`); return;
   }
   if (command === "build") {
+    const { buildProject } = await import("./build.js");
     const parsed = parseArgs({
       args: rest,
       allowPositionals: true,
@@ -76,17 +66,20 @@ async function main(): Promise<void> {
     console.log(`Built ${destination}`); return;
   }
   if (command === "preview") {
+    const { previewProject } = await import("./preview.js");
     const parsed = parseArgs({ args: rest, allowPositionals: true, options: { port: { type: "string" }, theme: { type: "string" } } });
     const port = Number(parsed.values.port ?? 4173);
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("port must be between 1 and 65535");
     await previewProject(parsed.positionals[0] ?? ".", port, parsed.values.theme); return;
   }
   if (command === "status") {
+    const { formatPulse, statusProject } = await import("./status.js");
     if (rest.length > 1) throw new Error("status accepts at most one project directory");
     process.stdout.write(formatPulse(await statusProject(rest[0] ?? ".")));
     return;
   }
   if (command === "gift") {
+    const { giftProject } = await import("./gift.js");
     const parsed = parseArgs({
       args: rest,
       allowPositionals: true,
@@ -103,6 +96,7 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "archive") {
+    const { archiveProject } = await import("./archive.js");
     const parsed = parseArgs({ args: rest, allowPositionals: true, options: { label: { type: "string" } } });
     if (parsed.positionals.length > 1) throw new Error("archive accepts at most one project directory");
     const destination = await archiveProject(parsed.positionals[0] ?? ".", parsed.values.label);
@@ -110,12 +104,14 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "diff") {
+    const { formatProofDiff, proofDiff } = await import("./diff.js");
     const parsed = parseArgs({ args: rest, allowPositionals: true, options: { against: { type: "string" } } });
     if (parsed.positionals.length > 1) throw new Error("diff accepts at most one project directory");
     process.stdout.write(formatProofDiff(await proofDiff(parsed.positionals[0] ?? ".", parsed.values.against)));
     return;
   }
   if (command === "drift") {
+    const { driftReport } = await import("./diff.js");
     if (rest.length > 1) throw new Error("drift accepts at most one project directory");
     process.stdout.write(await driftReport(rest[0] ?? "."));
     return;
@@ -123,17 +119,20 @@ async function main(): Promise<void> {
   if (command === "themes") {
     const [subcommand, ...themeArgs] = rest;
     if (!subcommand || subcommand === "list") {
+      const { listBuiltInThemes } = await import("./theme-loader.js");
       if (themeArgs.length) throw new Error("themes list does not take arguments");
       for (const theme of await listBuiltInThemes()) console.log(`${theme.id}\t${theme.name}\tv${theme.version}`);
       return;
     }
     if (subcommand === "show") {
+      const { inspectBuiltInTheme } = await import("./theme-loader.js");
       const id = themeArgs[0]; if (!id || themeArgs.length !== 1) throw new Error("themes show requires exactly one theme id");
       const theme = await inspectBuiltInTheme(id);
       console.log(`Name: ${theme.name}\nID: ${theme.id}\nVersion: ${theme.version}\nStyles:\n${theme.styles.map((style) => `  - ${style}`).join("\n")}\nAssets (${theme.assets.length}):\n${theme.assets.map((asset) => `  - ${asset}`).join("\n")}`);
       return;
     }
     if (subcommand === "preview") {
+      const { generateBuiltInThemePreviews } = await import("./preview.js");
       const parsed = parseArgs({ args: themeArgs, allowPositionals: true, options: {} });
       if (parsed.positionals.length > 1) throw new Error("themes preview accepts at most one project path");
       const destination = await generateBuiltInThemePreviews(parsed.positionals[0] ?? ".");
@@ -141,6 +140,7 @@ async function main(): Promise<void> {
       return;
     }
     if (subcommand === "test") {
+      const { testBuiltInThemes } = await import("./theme-contract.js");
       if (themeArgs.length) throw new Error("themes test does not take arguments");
       const results = await testBuiltInThemes();
       let failed = 0;
@@ -155,6 +155,7 @@ async function main(): Promise<void> {
     throw new Error(`Unknown themes command: ${subcommand}`);
   }
   if (command === "check") {
+    const { checkProject } = await import("./check.js");
     const parsed = parseArgs({
       args: rest,
       allowPositionals: true,
@@ -169,6 +170,7 @@ async function main(): Promise<void> {
     console.log(`✓ ${checked.sections} sections and ${checked.assets} assets are valid`); return;
   }
   if (command === "lint" || command === "preflight") {
+    const { lintProject } = await import("./lint.js");
     const parsed = parseArgs({ args: rest, allowPositionals: true, options: { ship: { type: "boolean" } } });
     if (parsed.positionals.length > 1) throw new Error(`${command} accepts at most one project directory`);
     const root = path.resolve(parsed.positionals[0] ?? ".");
@@ -180,7 +182,11 @@ async function main(): Promise<void> {
     } else console.log(`✓ ${result.chapters} chapter${result.chapters === 1 ? "" : "s"} passed manuscript validation`);
     return;
   }
-  if (command === "doctor") { if (!await doctor()) process.exitCode = 1; return; }
+  if (command === "doctor") {
+    const { doctor } = await import("./doctor.js");
+    if (!await doctor()) process.exitCode = 1;
+    return;
+  }
   throw new Error(`Unknown command: ${command}\n\n${help}`);
 }
 
