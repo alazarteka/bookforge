@@ -1,6 +1,5 @@
 import path from "node:path";
-import { createPublication } from "./build.js";
-import { loadConfig } from "./config.js";
+import { loadManuscriptSpine } from "./manuscript.js";
 import type { Section } from "./model.js";
 import { visitSection } from "./traversal.js";
 import { inlineText } from "./util.js";
@@ -32,8 +31,7 @@ const WORDS_PER_MINUTE = 238;
 
 export async function statusProject(project: string): Promise<ManuscriptPulse> {
   const root = path.resolve(project);
-  const config = await loadConfig(root);
-  const { publication } = await createPublication(root, undefined, { includeDrafts: true, injectColophon: false });
+  const { publication, config } = await loadManuscriptSpine(root, { includeDrafts: true });
   const byId = new Map(config.chapters.map((chapter) => [chapter.id, chapter]));
   const chapters: ChapterPulse[] = publication.spine.map((section) => {
     const words = countWords(section);

@@ -3,7 +3,7 @@ import path from "node:path";
 import YAML from "yaml";
 import { z } from "zod";
 import type { BookConfig } from "./model.js";
-import { containedPath, ensureFile } from "./util.js";
+import { containedPath, defaultConcurrency, ensureFile, mapPool } from "./util.js";
 
 const identifier = z.string().min(1).regex(/^[a-z0-9][a-z0-9._-]*$/, "must be a lowercase stable identifier");
 const emptyObject = z.object({}).strict();
@@ -67,22 +67,38 @@ export const bookConfigSchema = z.object({
 });
 
 export async function loadConfig(projectRoot: string): Promise<BookConfig> {
+  return (await loadConfigWithSource(projectRoot)).config;
+}
+
+/** Load and validate book.yaml once, returning raw text for sourceHash reuse. */
+export async function loadConfigWithSource(projectRoot: string): Promise<{ config: BookConfig; bookYaml: string }> {
   const configPath = path.join(projectRoot, "book.yaml");
   await ensureFile(configPath, "Book manifest");
-  const parsed: unknown = YAML.parse(await readFile(configPath, "utf8"), { strict: true, uniqueKeys: true });
+  const bookYaml = await readFile(configPath, "utf8");
+  const parsed: unknown = YAML.parse(bookYaml, { strict: true, uniqueKeys: true });
   const config = bookConfigSchema.parse(parsed) as BookConfig;
   const ids = new Set<string>();
   for (const chapter of config.chapters) {
     if (ids.has(chapter.id)) throw new Error(`Duplicate chapter id: ${chapter.id}`);
     ids.add(chapter.id);
-    await ensureFile(containedPath(projectRoot, chapter.path), `Chapter ${chapter.id}`);
     if (!chapter.path.toLowerCase().endsWith(".md")) throw new Error(`Chapter must be Markdown: ${chapter.path}`);
   }
   for (const edition of config.editions) {
     for (const overlay of Object.values(edition.overlays ?? {})) {
-      await ensureFile(containedPath(projectRoot, overlay), `Edition overlay ${edition.id}`);
       if (!overlay.toLowerCase().endsWith(".md")) throw new Error(`Edition overlay must be Markdown: ${overlay}`);
     }
   }
-  return config;
+  const chapterChecks = config.chapters.map((chapter) => ({
+    label: `Chapter ${chapter.id}`,
+    file: containedPath(projectRoot, chapter.path),
+  }));
+  const overlayChecks = config.editions.flatMap((edition) =>
+    Object.values(edition.overlays ?? {}).map((overlay) => ({
+      label: `Edition overlay ${edition.id}`,
+      file: containedPath(projectRoot, overlay),
+    })));
+  await mapPool([...chapterChecks, ...overlayChecks], defaultConcurrency(), async (entry) => {
+    await ensureFile(entry.file, entry.label);
+  });
+  return { config, bookYaml };
 }

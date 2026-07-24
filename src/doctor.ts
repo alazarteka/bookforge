@@ -19,10 +19,13 @@ export async function doctor(): Promise<boolean> {
   if (browser && "executable" in browser) checks.push({ name: `Browser (${browser.source})`, command: browser.executable, args: ["--version"], remedy: `Set BOOKFORGE_BROWSER to a supported browser executable; see ${releaseGuide}.` });
   let healthy = true;
   console.log("Bookforge doctor\n");
-  for (const check of checks) {
+  const results = await Promise.all(checks.map(async (check) => {
     const result = await run(check.command, check.args, { ...(check.cwd ? { cwd: check.cwd } : {}), quiet: true }).catch(() => undefined);
     const output = `${result?.stdout ?? ""}${result?.stderr ?? ""}`.trim();
     const okay = result?.code === 0 && (!check.expected || check.expected.test(output));
+    return { check, okay, output };
+  }));
+  for (const { check, okay, output } of results) {
     if (check.required !== false) healthy &&= okay;
     console.log(`${okay ? "✓" : check.required === false ? "!" : "✗"} ${check.name}: ${output.split(/\r?\n/, 1)[0] || "unavailable"}`);
     if (!okay) console.log(`  ${check.remedy}`);

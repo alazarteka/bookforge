@@ -71,7 +71,8 @@ async function addDirectory(zip: ZipFile, directory: string, prefix: string, mti
     .filter((entry) => entry.isFile())
     .map((entry) => path.relative(directory, path.join(entry.parentPath, entry.name)).replaceAll("\\", "/"))
     .sort();
-  for (const relative of files) {
-    zip.addBuffer(await readFile(path.join(directory, relative)), `${prefix}/${relative}`, { mtime, mode: 0o100644 });
+  const buffers = await Promise.all(files.map((relative) => readFile(path.join(directory, relative))));
+  for (let index = 0; index < files.length; index++) {
+    zip.addBuffer(buffers[index]!, `${prefix}/${files[index]!}`, { mtime, mode: 0o100644 });
   }
 }

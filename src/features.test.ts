@@ -225,3 +225,21 @@ test("verse layout chapters are marked in HTML", async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("unchanged rebuild is a no-op unless --force is set", async () => {
+  const root = await tempProject(true);
+  try {
+    await buildProject(root, ["web"]);
+    const first = await readFile(path.join(root, "dist/build-manifest.json"), "utf8");
+    await buildProject(root, ["web"]);
+    assert.equal(await readFile(path.join(root, "dist/build-manifest.json"), "utf8"), first);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await buildProject(root, ["web"], undefined, { force: true });
+    const forced = JSON.parse(await readFile(path.join(root, "dist/build-manifest.json"), "utf8")) as { sourceHash: string; timestamp: string };
+    const original = JSON.parse(first) as { sourceHash: string; timestamp: string };
+    assert.equal(forced.sourceHash, original.sourceHash);
+    assert.notEqual(forced.timestamp, original.timestamp);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

@@ -107,19 +107,24 @@ export async function ensureDirectory(directory: string): Promise<void> {
 
 export interface CommandResult { stdout: string; stderr: string; code: number }
 
-export async function run(command: string, args: string[], options: { cwd?: string; env?: NodeJS.ProcessEnv; quiet?: boolean } = {}): Promise<CommandResult> {
+export async function run(
+  command: string,
+  args: string[],
+  options: { cwd?: string; env?: NodeJS.ProcessEnv; quiet?: boolean; input?: string | Buffer } = {},
+): Promise<CommandResult> {
   return await new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
       env: { ...process.env, ...options.env },
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: [options.input !== undefined ? "pipe" : "ignore", "pipe", "pipe"],
     });
     let stdout = "";
     let stderr = "";
-    child.stdout.on("data", (chunk) => { stdout += String(chunk); if (!options.quiet) process.stdout.write(chunk); });
-    child.stderr.on("data", (chunk) => { stderr += String(chunk); if (!options.quiet) process.stderr.write(chunk); });
+    child.stdout?.on("data", (chunk) => { stdout += String(chunk); if (!options.quiet) process.stdout.write(chunk); });
+    child.stderr?.on("data", (chunk) => { stderr += String(chunk); if (!options.quiet) process.stderr.write(chunk); });
     child.on("error", reject);
     child.on("close", (code) => resolve({ stdout, stderr, code: code ?? 1 }));
+    if (options.input !== undefined) child.stdin?.end(options.input);
   });
 }
 

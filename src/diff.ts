@@ -1,6 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
-import { createPublication } from "./build.js";
+import { loadManuscriptSpine } from "./manuscript.js";
+import { collectAssets } from "./assets.js";
 import { loadReleaseSeal, snapshotChapters, type ChapterSnapshot } from "./seal.js";
 
 export interface ChapterDiff {
@@ -30,7 +31,7 @@ export async function proofDiff(project: string, against?: string): Promise<Proo
 
 export async function driftReport(project: string): Promise<string> {
   const root = path.resolve(project);
-  const { publication } = await createPublication(root);
+  const { publication } = await loadManuscriptSpine(root);
   const webIds = publication.spine.map((section) => section.id);
   const lines = [
     `Cross-format drift for ${publication.metadata.title}`,
@@ -53,17 +54,19 @@ export async function driftReport(project: string): Promise<string> {
     if (manifest.formats.includes("web")) {
       const paged = path.join(dist, "web", "chapters", `${id}.html`);
       const continuous = path.join(dist, "web", "index.html");
-      const hasPaged = await readFile(paged, "utf8").then(() => true).catch(() => false);
-      const hasContinuous = await readFile(continuous, "utf8").then((html) => html.includes(`id="${id}"`)).catch(() => false);
+      const hasPaged = (await stat(paged).catch(() => undefined))?.isFile() ?? false;
+      const hasContinuous = hasPaged
+        ? false
+        : await readFile(continuous, "utf8").then((html) => html.includes(`id="${id}"`)).catch(() => false);
       if (!hasPaged && !hasContinuous) lines.push(`DRIFT: web missing chapter ${id}`);
     }
   }
   if (manifest.formats.includes("epub")) {
-    const epub = await readFile(path.join(dist, "book.epub")).then(() => true).catch(() => false);
+    const epub = (await stat(path.join(dist, "book.epub")).catch(() => undefined))?.isFile() ?? false;
     if (!epub) lines.push("DRIFT: EPUB artifact missing");
   }
   if (manifest.formats.includes("pdf")) {
-    const pdf = await readFile(path.join(dist, "book.pdf")).then(() => true).catch(() => false);
+    const pdf = (await stat(path.join(dist, "book.pdf")).catch(() => undefined))?.isFile() ?? false;
     if (!pdf) lines.push("DRIFT: PDF artifact missing");
   }
   const drifted = lines.some((line) => line.startsWith("DRIFT:"));
@@ -77,7 +80,9 @@ interface Snapshot {
 }
 
 async function snapshotProject(projectRoot: string): Promise<Snapshot> {
-  const { publication } = await createPublication(projectRoot, undefined, { includeDrafts: true, injectColophon: false });
+  const { publication } = await loadManuscriptSpine(projectRoot, { includeDrafts: true });
+  // Match seal digests: built publications assign assetIds before snapshotting.
+  await collectAssets(publication, projectRoot);
   return { label: publication.id, chapters: snapshotChapters(publication) };
 }
 

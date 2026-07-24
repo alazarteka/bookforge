@@ -2,11 +2,13 @@ import { watch, type FSWatcher } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { createPublication } from "./build.js";
+import { createPublication } from "./publication.js";
 import { renderWeb } from "./web.js";
 import { contentTypeFor } from "./media-types.js";
 import { listBuiltInThemes, loadBuiltInTheme } from "./theme-loader.js";
 import { atomicReplaceDirectory, containedPath, escapeHtml } from "./util.js";
+
+const PREVIEW_DEBOUNCE_MS = 75;
 
 export function previewContentType(file: string): string {
   return contentTypeFor(file);
@@ -54,15 +56,25 @@ export async function previewProject(project: string, port = 4173, themeOverride
   const root = path.resolve(project);
   let building = false;
   let queued = false;
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+  let lastSourceHash: string | undefined;
   const rebuild = async () => {
     if (building) { queued = true; return; }
     building = true;
-    try { await rebuildPreview(root, renderWeb, themeOverride); console.log(`[bookforge] rebuilt ${new Date().toLocaleTimeString()}`); }
+    try {
+      const result = await rebuildPreview(root, renderWeb, themeOverride, lastSourceHash ? { sourceHash: lastSourceHash } : {});
+      lastSourceHash = result.sourceHash;
+      if (result.rebuilt) console.log(`[bookforge] rebuilt ${new Date().toLocaleTimeString()}`);
+    }
     catch (error) { console.error(`[bookforge] rebuild failed: ${error instanceof Error ? error.message : String(error)}`); }
     finally { building = false; if (queued) { queued = false; void rebuild(); } }
   };
+  const scheduleRebuild = () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => { debounceTimer = undefined; void rebuild(); }, PREVIEW_DEBOUNCE_MS);
+  };
   const watcher = watch(root, { recursive: true }, (_event, filename) => {
-    if (filename && shouldRebuildPreview(filename)) void rebuild();
+    if (filename && shouldRebuildPreview(filename)) scheduleRebuild();
   });
   watcher.on("error", (error) => stopPreviewWatcher(watcher, error));
   try {
@@ -98,14 +110,23 @@ export async function previewProject(project: string, port = 4173, themeOverride
   }
 }
 
-export async function rebuildPreview(root: string, render: typeof renderWeb = renderWeb, themeOverride?: string): Promise<void> {
-  const { publication, theme } = await createPublication(root, themeOverride);
-  const stage = await mkdtemp(path.join(root, ".bookforge-preview-stage-"));
+export async function rebuildPreview(
+  root: string,
+  render: typeof renderWeb = renderWeb,
+  themeOverride?: string,
+  state: { sourceHash?: string } = {},
+): Promise<{ sourceHash: string; rebuilt: boolean }> {
+  const { publication, theme, sourceHash } = await createPublication(root, themeOverride);
   const target = path.join(root, ".bookforge-preview");
+  if (state.sourceHash && state.sourceHash === sourceHash && (await stat(target).catch(() => undefined))?.isDirectory()) {
+    return { sourceHash, rebuilt: false };
+  }
+  const stage = await mkdtemp(path.join(root, ".bookforge-preview-stage-"));
   const previous = path.join(root, ".bookforge-preview-previous");
   try {
     await render(publication, theme, stage);
     await atomicReplaceDirectory(stage, target, previous);
+    return { sourceHash, rebuilt: true };
   } catch (error) {
     await rm(stage, { recursive: true, force: true });
     throw error;

@@ -1,5 +1,5 @@
 import path from "node:path";
-import { copyFile, mkdir } from "node:fs/promises";
+import { access, constants, copyFile, mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import sharp from "sharp";
 import type { Asset, Publication } from "./model.js";
@@ -71,6 +71,8 @@ function encodeAsset(asset: Asset): Promise<string> {
     job = (async () => {
       const directory = await encodedCacheDirectory();
       const cached = path.join(directory, cacheKey);
+      // Reuse on-disk encodes across process runs; content-hash names keep this safe.
+      if (await access(cached, constants.R_OK).then(() => true).catch(() => false)) return cached;
       // Encode via toFile so format/extension handling matches prior builds.
       await sharp(asset.sourcePath, { animated: asset.mediaType === "image/gif" }).rotate().toFile(cached);
       return cached;

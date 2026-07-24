@@ -6,7 +6,7 @@ const help = `Bookforge — beautiful local-first publishing
 
 Usage:
   bookforge init <directory> [--from-existing <markdown-directory>] [--id <id>] [--title <title>] [--author <name>] [--language <tag>] [--dry-run]
-  bookforge build [project] [--format web,epub,pdf] [--theme <id>] [--include-drafts] [--edition <id>] [--all-editions]
+  bookforge build [project] [--format web,epub,pdf] [--theme <id>] [--include-drafts] [--edition <id>] [--all-editions] [--force]
   bookforge preview [project] [--port 4173] [--theme <id>]
   bookforge status [project]
   bookforge gift [project] [--to <name>] [--format web,epub,pdf] [--output <file>]
@@ -55,12 +55,14 @@ async function main(): Promise<void> {
         "include-drafts": { type: "boolean" },
         edition: { type: "string" },
         "all-editions": { type: "boolean" },
+        force: { type: "boolean" },
       },
     });
     const formats = parsed.values.format?.split(",").filter(Boolean);
     const destination = await buildProject(parsed.positionals[0] ?? ".", formats, parsed.values.theme, {
       includeDrafts: parsed.values["include-drafts"] ?? false,
       allEditions: parsed.values["all-editions"] ?? false,
+      force: parsed.values.force ?? false,
       ...(parsed.values.edition ? { editionId: parsed.values.edition } : {}),
     });
     console.log(`Built ${destination}`); return;
