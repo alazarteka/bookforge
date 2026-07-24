@@ -32,12 +32,13 @@ async function main(): Promise<void> {
       "from-existing": { type: "string" }, id: { type: "string" }, title: { type: "string" }, author: { type: "string", multiple: true }, language: { type: "string" }, "dry-run": { type: "boolean" },
     } });
     const target = parsed.positionals[0]; if (!target || parsed.positionals.length > 1) throw new Error("init requires exactly one destination directory");
+    validateInitValues(parsed.values);
     const options = {
-      ...(parsed.values["from-existing"] ? { fromExisting: parsed.values["from-existing"] } : {}),
-      ...(parsed.values.id ? { id: parsed.values.id } : {}),
-      ...(parsed.values.title ? { title: parsed.values.title } : {}),
-      ...(parsed.values.author?.length ? { authors: parsed.values.author } : {}),
-      ...(parsed.values.language ? { language: parsed.values.language } : {}),
+      ...(parsed.values["from-existing"] !== undefined ? { fromExisting: parsed.values["from-existing"] } : {}),
+      ...(parsed.values.id !== undefined ? { id: parsed.values.id } : {}),
+      ...(parsed.values.title !== undefined ? { title: parsed.values.title } : {}),
+      ...(parsed.values.author !== undefined ? { authors: parsed.values.author } : {}),
+      ...(parsed.values.language !== undefined ? { language: parsed.values.language } : {}),
       ...(parsed.values["dry-run"] ? { dryRun: true } : {}),
     };
     const chapters = options.fromExisting ? await importedChapterCount(options.fromExisting) : 1;
@@ -58,8 +59,8 @@ async function main(): Promise<void> {
         force: { type: "boolean" },
       },
     });
-    const formats = parsed.values.format?.split(",").filter(Boolean);
-    const destination = await buildProject(parsed.positionals[0] ?? ".", formats, parsed.values.theme, {
+    const formats = parseFormats(parsed.values.format);
+    const destination = await buildProject(optionalProjectPath(parsed.positionals, "build"), formats, parsed.values.theme, {
       includeDrafts: parsed.values["include-drafts"] ?? false,
       allEditions: parsed.values["all-editions"] ?? false,
       force: parsed.values.force ?? false,
@@ -72,7 +73,7 @@ async function main(): Promise<void> {
     const parsed = parseArgs({ args: rest, allowPositionals: true, options: { port: { type: "string" }, theme: { type: "string" } } });
     const port = Number(parsed.values.port ?? 4173);
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("port must be between 1 and 65535");
-    await previewProject(parsed.positionals[0] ?? ".", port, parsed.values.theme); return;
+    await previewProject(optionalProjectPath(parsed.positionals, "preview"), port, parsed.values.theme); return;
   }
   if (command === "status") {
     const { formatPulse, statusProject } = await import("./status.js");
@@ -88,7 +89,7 @@ async function main(): Promise<void> {
       options: { to: { type: "string" }, format: { type: "string" }, output: { type: "string" } },
     });
     if (parsed.positionals.length > 1) throw new Error("gift accepts at most one project directory");
-    const formats = parsed.values.format?.split(",").filter(Boolean) as Array<"web" | "epub" | "pdf"> | undefined;
+    const formats = parseFormats(parsed.values.format);
     const file = await giftProject(parsed.positionals[0] ?? ".", {
       ...(parsed.values.to ? { to: parsed.values.to } : {}),
       ...(formats?.length ? { formats } : {}),
@@ -185,11 +186,47 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "doctor") {
+    if (rest.length) throw new Error("doctor does not take arguments");
     const { doctor } = await import("./doctor.js");
     if (!await doctor()) process.exitCode = 1;
     return;
   }
   throw new Error(`Unknown command: ${command}\n\n${help}`);
+}
+
+function optionalProjectPath(positionals: string[], command: string): string {
+  if (positionals.length > 1) throw new Error(`${command} accepts at most one project directory`);
+  return positionals[0] ?? ".";
+}
+
+function parseFormats(value: string | undefined): Array<"web" | "epub" | "pdf"> | undefined {
+  if (value === undefined) return undefined;
+  const formats = value.split(",");
+  if (!formats.length || formats.some((format) => !format)) {
+    throw new Error("format must be a non-empty comma-separated list of web, epub, or pdf");
+  }
+  if (new Set(formats).size !== formats.length) throw new Error("format must not contain duplicates");
+  const unsupported = formats.filter((format) => !isFormat(format));
+  if (unsupported.length) throw new Error(`Unknown formats: ${unsupported.join(", ")}`);
+  return formats.filter(isFormat);
+}
+
+function isFormat(value: string): value is "web" | "epub" | "pdf" {
+  return value === "web" || value === "epub" || value === "pdf";
+}
+
+function validateInitValues(values: {
+  "from-existing"?: string;
+  id?: string;
+  title?: string;
+  author?: string[];
+  language?: string;
+}): void {
+  if (values["from-existing"] !== undefined && !values["from-existing"].trim()) throw new Error("Markdown source directory must not be empty");
+  if (values.id !== undefined && !values.id.trim()) throw new Error("Invalid book id; id must not be empty");
+  if (values.title !== undefined && !values.title.trim()) throw new Error("Book title must not be empty");
+  if (values.author !== undefined && (!values.author.length || values.author.some((author) => !author.trim()))) throw new Error("Author names must not be empty");
+  if (values.language !== undefined && values.language.trim().length < 2) throw new Error("Language must be a language tag such as en or ko");
 }
 
 main().catch((error) => { console.error(`bookforge: ${error instanceof Error ? error.message : String(error)}`); process.exitCode = 1; });
