@@ -31,8 +31,10 @@ export async function proofDiff(project: string, against?: string): Promise<Proo
 
 export async function driftReport(project: string): Promise<string> {
   const root = path.resolve(project);
-  const { publication } = await loadManuscriptSpine(root);
+  const { publication, config } = await loadManuscriptSpine(root);
   const webIds = publication.spine.map((section) => section.id);
+  // Builds inject a generated colophon section when enabled; expect its web page too.
+  if (config.colophon && !webIds.includes("colophon")) webIds.push("colophon");
   const lines = [
     `Cross-format drift for ${publication.metadata.title}`,
     `Shared spine (${webIds.length}): ${webIds.join(", ") || "(empty)"}`,

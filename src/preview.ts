@@ -118,7 +118,12 @@ export async function rebuildPreview(
 ): Promise<{ sourceHash: string; rebuilt: boolean }> {
   const { publication, theme, sourceHash } = await createPublication(root, themeOverride);
   const target = path.join(root, ".bookforge-preview");
-  if (state.sourceHash && state.sourceHash === sourceHash && (await stat(target).catch(() => undefined))?.isDirectory()) {
+  const previewIndex = path.join(target, "index.html");
+  if (
+    state.sourceHash
+    && state.sourceHash === sourceHash
+    && (await stat(previewIndex).catch(() => undefined))?.isFile()
+  ) {
     return { sourceHash, rebuilt: false };
   }
   const stage = await mkdtemp(path.join(root, ".bookforge-preview-stage-"));

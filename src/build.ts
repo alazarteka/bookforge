@@ -1,6 +1,6 @@
 import { mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { BookConfig, BuildManifest } from "./model.js";
+import type { BookConfig, BuildManifest, PrintProfile } from "./model.js";
 import { loadConfigWithSource } from "./config.js";
 import { renderWeb } from "./web.js";
 import { renderEpub } from "./epub.js";
@@ -87,16 +87,20 @@ async function buildOne(
   const destination = edition
     ? path.join(projectRoot, "dist", "editions", edition.id)
     : path.join(projectRoot, "dist");
-  if (!options.force && await existingBuildIsCurrent(destination, built, formats)) {
+  const printProfile = formats.includes("pdf") ? await loadPrintProfile(projectRoot, config.outputs.pdf) : undefined;
+  const webReading = config.outputs.web?.reading ?? "paged";
+  if (!options.force && await existingBuildIsCurrent(destination, built, formats, {
+    webReading,
+    ...(printProfile ? { printProfile } : {}),
+  })) {
     return destination;
   }
   const stage = await mkdtemp(path.join(projectRoot, ".bookforge-stage-"));
   try {
-    const printProfile = formats.includes("pdf") ? await loadPrintProfile(projectRoot, config.outputs.pdf) : undefined;
     // Web, EPUB, and PDF share one publication IR; render them concurrently.
     const renderJobs: Array<Promise<void>> = [];
     if (formats.includes("web")) {
-      renderJobs.push(renderWeb(publication, theme, path.join(stage, "web"), config.outputs.web?.reading ?? "paged"));
+      renderJobs.push(renderWeb(publication, theme, path.join(stage, "web"), webReading));
     }
     if (formats.includes("epub")) {
       renderJobs.push((async () => {
@@ -159,7 +163,12 @@ async function buildOne(
   }
 }
 
-async function existingBuildIsCurrent(destination: string, built: PublicationBuild, formats: Format[]): Promise<boolean> {
+async function existingBuildIsCurrent(
+  destination: string,
+  built: PublicationBuild,
+  formats: Format[],
+  options: { printProfile?: PrintProfile; webReading: "paged" | "continuous" },
+): Promise<boolean> {
   try {
     const raw = await readFile(path.join(destination, "build-manifest.json"), "utf8");
     const manifest = JSON.parse(raw) as BuildManifest;
@@ -167,8 +176,24 @@ async function existingBuildIsCurrent(destination: string, built: PublicationBui
     if (manifest.publicationId !== built.publication.id) return false;
     if (manifest.theme.hash !== built.theme.hash) return false;
     if (manifest.formats.length !== formats.length || formats.some((format) => !manifest.formats.includes(format))) return false;
+    if (formats.includes("pdf")) {
+      if (!options.printProfile || !manifest.printProfile) return false;
+      if (
+        manifest.printProfile.id !== options.printProfile.id
+        || manifest.printProfile.hash !== options.printProfile.hash
+        || manifest.printProfile.source !== options.printProfile.source
+      ) return false;
+    } else if (manifest.printProfile) {
+      return false;
+    }
     const checks = formats.map(async (format) => {
-      if (format === "web") return (await stat(path.join(destination, "web", "index.html")).catch(() => undefined))?.isFile();
+      if (format === "web") {
+        if (!(await stat(path.join(destination, "web", "index.html")).catch(() => undefined))?.isFile()) return false;
+        if (options.webReading !== "paged") return true;
+        const chapterChecks = await Promise.all(built.publication.spine.map(async (section) =>
+          (await stat(path.join(destination, "web", "chapters", `${section.id}.html`)).catch(() => undefined))?.isFile()));
+        return chapterChecks.every(Boolean);
+      }
       if (format === "epub") return (await stat(path.join(destination, "book.epub")).catch(() => undefined))?.isFile();
       return (await stat(path.join(destination, "book.pdf")).catch(() => undefined))?.isFile();
     });

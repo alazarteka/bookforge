@@ -1,5 +1,5 @@
 import path from "node:path";
-import { access, constants, copyFile, mkdir } from "node:fs/promises";
+import { copyFile, mkdir, rename, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import sharp from "sharp";
 import type { Asset, Publication } from "./model.js";
@@ -71,10 +71,18 @@ function encodeAsset(asset: Asset): Promise<string> {
     job = (async () => {
       const directory = await encodedCacheDirectory();
       const cached = path.join(directory, cacheKey);
-      // Reuse on-disk encodes across process runs; content-hash names keep this safe.
-      if (await access(cached, constants.R_OK).then(() => true).catch(() => false)) return cached;
-      // Encode via toFile so format/extension handling matches prior builds.
-      await sharp(asset.sourcePath, { animated: asset.mediaType === "image/gif" }).rotate().toFile(cached);
+      // Reuse complete on-disk encodes across process runs; content-hash names keep this safe.
+      const existing = await stat(cached).catch(() => undefined);
+      if (existing?.isFile() && existing.size > 0) return cached;
+      // Encode to a temp path then rename so interrupted writes are never reused.
+      const staging = path.join(directory, `.${cacheKey}.${process.pid}.${Date.now()}.tmp`);
+      try {
+        await sharp(asset.sourcePath, { animated: asset.mediaType === "image/gif" }).rotate().toFile(staging);
+        await rename(staging, cached);
+      } catch (error) {
+        await rm(staging, { force: true }).catch(() => undefined);
+        throw error;
+      }
       return cached;
     })().catch((error) => {
       encodedAssetJobs.delete(cacheKey);

@@ -84,6 +84,21 @@ test("preview rebuild replaces output and removes its staging directory", async 
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+test("preview hash short-circuit rebuilds when index.html is missing", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-preview-"));
+  try {
+    await cp(fixture, root, { recursive: true });
+    const first = await rebuildPreview(root);
+    assert.equal(first.rebuilt, true);
+    const skipped = await rebuildPreview(root, undefined, undefined, { sourceHash: first.sourceHash });
+    assert.equal(skipped.rebuilt, false);
+    await rm(path.join(root, ".bookforge-preview", "index.html"));
+    const recovered = await rebuildPreview(root, undefined, undefined, { sourceHash: first.sourceHash });
+    assert.equal(recovered.rebuilt, true);
+    await access(path.join(root, ".bookforge-preview", "index.html"));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test("preview rebuild preserves the previous output and cleans its stage on render failure", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "bookforge-preview-"));
   try {

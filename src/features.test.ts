@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { archiveProject } from "./archive.js";
 import { buildProject } from "./build.js";
 import { checkProject } from "./check.js";
-import { formatProofDiff, proofDiff } from "./diff.js";
+import { driftReport, formatProofDiff, proofDiff } from "./diff.js";
 import { giftProject } from "./gift.js";
 import { lintProject } from "./lint.js";
 import { loadReleaseSeal } from "./seal.js";
@@ -239,6 +239,36 @@ test("unchanged rebuild is a no-op unless --force is set", async () => {
     const original = JSON.parse(first) as { sourceHash: string; timestamp: string };
     assert.equal(forced.sourceHash, original.sourceHash);
     assert.notEqual(forced.timestamp, original.timestamp);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("paged web rebuild refuses to no-op when a chapter page is missing", async () => {
+  const root = await tempProject(true);
+  try {
+    await buildProject(root, ["web"]);
+    const first = await readFile(path.join(root, "dist/build-manifest.json"), "utf8");
+    await rm(path.join(root, "dist/web/chapters/threshold.html"));
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await buildProject(root, ["web"]);
+    const rebuilt = JSON.parse(await readFile(path.join(root, "dist/build-manifest.json"), "utf8")) as { timestamp: string };
+    assert.notEqual(rebuilt.timestamp, JSON.parse(first).timestamp);
+    await access(path.join(root, "dist/web/chapters/threshold.html"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("drift reports a missing generated colophon page", async () => {
+  const root = await tempProject(true);
+  try {
+    const manifest = await readFile(path.join(root, "book.yaml"), "utf8");
+    await writeFile(path.join(root, "book.yaml"), manifest.replace("theme: classic", "theme: classic\ncolophon: true"));
+    await buildProject(root, ["web"]);
+    await rm(path.join(root, "dist/web/chapters/colophon.html"));
+    const report = await driftReport(root);
+    assert.match(report, /DRIFT: web missing chapter colophon/);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
