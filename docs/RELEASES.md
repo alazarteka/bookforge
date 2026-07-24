@@ -177,6 +177,12 @@ verified and extracted. On activation it records the old release as `previous`.
 `rollback` swaps those managed links; it does not delete released files. Users
 may remove old directories only after confirming that the newer release works.
 
+If an older installer exits with `spawnSync tar ENOBUFS`, it failed while
+validating a large archive listing and did not activate the downloaded release.
+Download the latest standalone `bookforge-install.sh` from the releases page and
+run it directly; `bookforge update` from the affected release invokes the same
+older bundled installer and can encounter the same limit.
+
 ## Release and compatibility policy
 
 - Release tags are `vX.Y.Z` and must exactly match `package.json` before the
