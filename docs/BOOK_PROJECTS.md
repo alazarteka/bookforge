@@ -183,10 +183,12 @@ each sibling edition has its own seal inside its output directory.
 another project or sealed build. If the baseline is missing or predates proof
 snapshots, rebuild it first.
 
-`bookforge archive --label <name>` publishes an immutable archive and updates
-`archives/INDEX.md` only after the copy succeeds. The same book, normalized
-label, and date resolve to the same destination; Bookforge refuses that
-collision so an existing archive can never retain files from a later build.
+`bookforge archive --label <name>` verifies the stored seal digest and artifact
+inventory, publishes an immutable archive, and updates `archives/INDEX.md` only
+after the copy succeeds. Missing, stale, or tampered sealed output is rejected.
+The same book, normalized label, and date resolve to the same destination;
+Bookforge refuses that collision so an existing archive can never retain files
+from a later build.
 
 ## Themes
 

@@ -124,9 +124,11 @@ sibling builds under `dist/editions/` carry and verify their own seals. Run
 sealed chapter snapshot. A missing or older seal cannot be used as a proof
 baseline and must be replaced with a fresh build.
 
-Archives are immutable snapshots. Reusing the same label on the same date is
-rejected instead of merging new output into an existing archive; choose a new
-`--label` for a distinct snapshot.
+Archives are immutable snapshots. Archive creation first verifies the release
+seal and every sealed artifact byte, rejecting stale, tampered, or unsealed
+output. Reusing the same label on the same date is rejected instead of merging
+new output into an existing archive; choose a new `--label` for a distinct
+snapshot.
 
 A temporary `build --theme <id>` that differs from `book.yaml` also leaves a
 theme-mismatched build manifest that `check` rejects. Prefer `preview --theme

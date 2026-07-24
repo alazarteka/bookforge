@@ -210,6 +210,21 @@ test("seal verification rejects metadata, snapshot, and artifact tampering", asy
   }
 });
 
+test("archive rejects a tampered or unsealed build", async () => {
+  const root = await tempProject(true);
+  try {
+    await buildProject(root, ["web"]);
+    const index = path.join(root, "dist/web/index.html");
+    await writeFile(index, `${await readFile(index, "utf8")}\n<!-- tampered -->\n`);
+    await assert.rejects(archiveProject(root, "tampered"), /artifact inventory/i);
+    await buildProject(root, ["web"]);
+    await rm(path.join(root, "dist/release-seal.json"));
+    await assert.rejects(archiveProject(root, "unsealed"), /release seal/i);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("verse layout chapters are marked in HTML", async () => {
   const root = await tempProject(true);
   try {
