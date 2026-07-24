@@ -13,18 +13,20 @@ export async function parseMarkdown(
   role: SectionRole,
   configuredTitle?: string,
   layout: ChapterLayout = "prose",
+  sourceText?: string,
 ): Promise<Section> {
-  const source = await readFile(file, "utf8");
+  const source = sourceText ?? await readFile(file, "utf8");
   const rawHtml = /^\s*<\/?[A-Za-z][^>]*>/m.exec(source);
   if (rawHtml?.index !== undefined) throw sourceError(file, source, rawHtml.index, "raw HTML is not supported; write literal angle-bracket text as inline code, for example `<option>`.");
   const remoteImage = /!\[[^\]]*\]\(https?:\/\//i.exec(source);
   if (remoteImage?.index !== undefined) throw sourceError(file, source, remoteImage.index, "remote images are not supported; download the image into this book project and link to the local file.");
+  // Feed source on stdin when already loaded to avoid a second disk read by Pandoc.
   const result = await run("pandoc", [
     "--from=gfm+footnotes+attributes-raw_html+smart",
     "--to=json",
     "--wrap=none",
-    file,
-  ], { quiet: true });
+    "-",
+  ], { quiet: true, input: source });
   if (result.code !== 0) throw new Error(`Pandoc failed for ${id}: ${result.stderr.trim()}`);
   const document = JSON.parse(result.stdout) as PandocDocument;
   const state = { chapterId: id, projectRoot, sourceDirectory: path.dirname(file), headings: new Map<string, number>(), footnotes: 0 };

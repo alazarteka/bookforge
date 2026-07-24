@@ -3,7 +3,7 @@ import path from "node:path";
 import { z } from "zod";
 import type { PrintProfile, Publication, PublicationTheme } from "./model.js";
 import { visitSection } from "./traversal.js";
-import { BOOKFORGE_VERSION, inlineText, sha256 } from "./util.js";
+import { BOOKFORGE_VERSION, defaultConcurrency, inlineText, mapPool, sha256 } from "./util.js";
 
 const hashSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const chapterSnapshotSchema = z.object({
@@ -193,15 +193,17 @@ function printProfileIdentity(profile: PrintProfile): NonNullable<ReleaseSeal["p
 
 async function inventoryArtifacts(root: string): Promise<ReleaseSeal["artifacts"]> {
   const entries = await readdir(root, { recursive: true, withFileTypes: true });
-  const artifacts: ReleaseSeal["artifacts"] = [];
-  for (const entry of entries) {
+  const files = entries.flatMap((entry) => {
     const relative = path.relative(root, path.join(entry.parentPath, entry.name)).replaceAll("\\", "/");
-    if (relative === "release-seal.json" || relative === "editions" || relative.startsWith("editions/")) continue;
-    if (entry.isDirectory()) continue;
+    if (relative === "release-seal.json" || relative === "editions" || relative.startsWith("editions/")) return [];
+    if (entry.isDirectory()) return [];
     if (!entry.isFile()) throw new Error(`Unsupported artifact entry in dist: ${relative}`);
+    return [relative];
+  });
+  const artifacts = await mapPool(files, defaultConcurrency(16), async (relative) => {
     const contents = await readFile(path.join(root, relative));
-    artifacts.push({ path: relative, bytes: contents.byteLength, digest: sha256(contents) });
-  }
+    return { path: relative, bytes: contents.byteLength, digest: sha256(contents) };
+  });
   return artifacts.sort((left, right) => left.path.localeCompare(right.path));
 }
 

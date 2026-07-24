@@ -2,9 +2,40 @@ import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { mkdir, readFile, rename, rm, stat } from "node:fs/promises";
+import { availableParallelism } from "node:os";
 import path from "node:path";
 
 export const BOOKFORGE_VERSION = "0.2.0";
+
+/** Bound concurrent async work so Pandoc/sharp do not stampede the machine. */
+export function defaultConcurrency(cap = 8): number {
+  try {
+    return Math.min(cap, Math.max(2, availableParallelism()));
+  } catch {
+    return Math.min(cap, 4);
+  }
+}
+
+/** Map `items` with at most `concurrency` in-flight promises, preserving order. */
+export async function mapPool<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  if (items.length === 0) return [];
+  const limit = Math.max(1, Math.min(concurrency, items.length));
+  const results = new Array<R>(items.length);
+  let next = 0;
+  await Promise.all(Array.from({ length: limit }, async () => {
+    for (;;) {
+      const index = next;
+      next += 1;
+      if (index >= items.length) return;
+      results[index] = await mapper(items[index]!, index);
+    }
+  }));
+  return results;
+}
 
 export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (char) => ({
@@ -76,19 +107,24 @@ export async function ensureDirectory(directory: string): Promise<void> {
 
 export interface CommandResult { stdout: string; stderr: string; code: number }
 
-export async function run(command: string, args: string[], options: { cwd?: string; env?: NodeJS.ProcessEnv; quiet?: boolean } = {}): Promise<CommandResult> {
+export async function run(
+  command: string,
+  args: string[],
+  options: { cwd?: string; env?: NodeJS.ProcessEnv; quiet?: boolean; input?: string | Buffer } = {},
+): Promise<CommandResult> {
   return await new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
       env: { ...process.env, ...options.env },
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: [options.input !== undefined ? "pipe" : "ignore", "pipe", "pipe"],
     });
     let stdout = "";
     let stderr = "";
-    child.stdout.on("data", (chunk) => { stdout += String(chunk); if (!options.quiet) process.stdout.write(chunk); });
-    child.stderr.on("data", (chunk) => { stderr += String(chunk); if (!options.quiet) process.stderr.write(chunk); });
+    child.stdout?.on("data", (chunk) => { stdout += String(chunk); if (!options.quiet) process.stdout.write(chunk); });
+    child.stderr?.on("data", (chunk) => { stderr += String(chunk); if (!options.quiet) process.stderr.write(chunk); });
     child.on("error", reject);
     child.on("close", (code) => resolve({ stdout, stderr, code: code ?? 1 }));
+    if (options.input !== undefined) child.stdin?.end(options.input);
   });
 }
 

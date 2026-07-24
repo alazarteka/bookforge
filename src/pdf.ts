@@ -23,9 +23,11 @@ export async function renderPdf(publication: Publication, theme: PublicationThem
   const stagedOutput = path.join(outputDirectory, path.basename(outputFile));
   try {
     await mkdir(printDirectory, { recursive: true });
-    await writeAssets(publication.assets, path.join(printDirectory, "assets"));
-    await writeThemeAssets(theme, path.join(printDirectory, "theme-assets"));
-    await writeFile(path.join(printDirectory, "print.css"), `:root { --book-page: ${profile.page}; --book-margin: ${profile.margins}; --book-bleed: ${profile.bleed}; }\n${themeCss(theme, "print")}`);
+    await Promise.all([
+      writeAssets(publication.assets, path.join(printDirectory, "assets")),
+      writeThemeAssets(theme, path.join(printDirectory, "theme-assets")),
+      writeFile(path.join(printDirectory, "print.css"), `:root { --book-page: ${profile.page}; --book-margin: ${profile.margins}; --book-bleed: ${profile.bleed}; }\n${themeCss(theme, "print")}`),
+    ]);
     const assets = new Map(publication.assets.map((asset) => [asset.id, asset]));
     const context = { flavor: "print" as const, assets, chapterFile: (id: string) => `#${id}`, assetPrefix: "assets/" };
     const kickers = sectionKickers(publication.spine);

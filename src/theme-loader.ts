@@ -93,7 +93,7 @@ async function loadThemeCandidates(
     const cssEntries = await Promise.all(Object.entries(manifest.styles).map(async ([key, relative]) => {
       const file = containedPath(candidate.root, relative);
       const css = await readFile(file, "utf8");
-      return [key, css, await fileHash(file), validateCss(css, `${manifest.id}/${relative}`)] as const;
+      return [key, css, sha256(css), validateCss(css, `${manifest.id}/${relative}`)] as const;
     }));
     const assetNames = new Set<string>();
     const assetNameKeys = new Set<string>();
@@ -139,5 +139,5 @@ export function themeCss(theme: PublicationTheme, flavor: "web" | "epub" | "prin
 export async function writeThemeAssets(theme: PublicationTheme, directory: string): Promise<void> {
   if (!theme.assets.length) return;
   await mkdir(directory, { recursive: true });
-  for (const asset of theme.assets) await copyFile(asset.sourcePath, path.join(directory, asset.outputName));
+  await Promise.all(theme.assets.map((asset) => copyFile(asset.sourcePath, path.join(directory, asset.outputName))));
 }

@@ -1,7 +1,7 @@
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
-import { createPublication, type Format } from "./build.js";
+import { createPublication, type Format } from "./publication.js";
 import { loadPrintProfile } from "./profile-loader.js";
 import { assertSealMatches } from "./seal.js";
 import { BOOKFORGE_VERSION, run } from "./util.js";
