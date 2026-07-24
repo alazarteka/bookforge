@@ -99,6 +99,19 @@ test("preview hash short-circuit rebuilds when index.html is missing", async () 
   } finally { await rm(root, { recursive: true, force: true }); }
 });
 
+test("preview hash short-circuit rebuilds when a paged chapter is missing", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-preview-"));
+  try {
+    await cp(fixture, root, { recursive: true });
+    const first = await rebuildPreview(root);
+    assert.equal(first.rebuilt, true);
+    await rm(path.join(root, ".bookforge-preview", "chapters", "threshold.html"));
+    const recovered = await rebuildPreview(root, undefined, undefined, { sourceHash: first.sourceHash });
+    assert.equal(recovered.rebuilt, true);
+    await access(path.join(root, ".bookforge-preview", "chapters", "threshold.html"));
+  } finally { await rm(root, { recursive: true, force: true }); }
+});
+
 test("preview rebuild preserves the previous output and cleans its stage on render failure", async () => {
   const root = await mkdtemp(path.join(tmpdir(), "bookforge-preview-"));
   try {

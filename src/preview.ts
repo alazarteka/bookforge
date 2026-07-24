@@ -116,26 +116,31 @@ export async function rebuildPreview(
   themeOverride?: string,
   state: { sourceHash?: string } = {},
 ): Promise<{ sourceHash: string; rebuilt: boolean }> {
-  const { publication, theme, sourceHash } = await createPublication(root, themeOverride);
+  const { publication, theme, sourceHash, config } = await createPublication(root, themeOverride);
   const target = path.join(root, ".bookforge-preview");
   const previewIndex = path.join(target, "index.html");
-  if (
-    state.sourceHash
-    && state.sourceHash === sourceHash
-    && (await stat(previewIndex).catch(() => undefined))?.isFile()
-  ) {
+  const reading = config.outputs.web?.reading ?? "paged";
+  if (state.sourceHash && state.sourceHash === sourceHash && (await previewOutputIsCurrent(target, publication.spine.map((section) => section.id), reading))) {
     return { sourceHash, rebuilt: false };
   }
   const stage = await mkdtemp(path.join(root, ".bookforge-preview-stage-"));
   const previous = path.join(root, ".bookforge-preview-previous");
   try {
-    await render(publication, theme, stage);
+    await render(publication, theme, stage, reading);
     await atomicReplaceDirectory(stage, target, previous);
     return { sourceHash, rebuilt: true };
   } catch (error) {
     await rm(stage, { recursive: true, force: true });
     throw error;
   }
+}
+
+async function previewOutputIsCurrent(target: string, sectionIds: string[], reading: "paged" | "continuous"): Promise<boolean> {
+  if (!(await stat(path.join(target, "index.html")).catch(() => undefined))?.isFile()) return false;
+  if (reading !== "paged") return true;
+  const chapters = await Promise.all(sectionIds.map(async (id) =>
+    (await stat(path.join(target, "chapters", `${id}.html`)).catch(() => undefined))?.isFile()));
+  return chapters.every(Boolean);
 }
 
 /** Render every bundled theme side-by-side without changing book.yaml or dist/. */

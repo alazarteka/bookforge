@@ -77,9 +77,14 @@ export async function createPublication(
   await collectAssets(publication, projectRoot);
   hashes.push(theme.hash);
   for (const asset of [...publication.assets].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))) hashes.push(asset.hash);
-  let sourceHash = sha256(hashes.join("\n\0\n"));
-  if ((options.injectColophon ?? true) && shouldInjectColophon(config, publication)) {
-    const printProfile = config.outputs.pdf ? await loadPrintProfile(projectRoot, config.outputs.pdf) : undefined;
+  const injectColophon = (options.injectColophon ?? true) && shouldInjectColophon(config, publication);
+  // Colophon text embeds the print profile; fold its hash into sourceHash so skips stay correct.
+  const printProfile = injectColophon && config.outputs.pdf
+    ? await loadPrintProfile(projectRoot, config.outputs.pdf)
+    : undefined;
+  if (printProfile) hashes.push(printProfile.hash);
+  const sourceHash = sha256(hashes.join("\n\0\n"));
+  if (injectColophon) {
     publication.spine.push(buildColophonSection(publication, config, theme, { ...(printProfile ? { printProfile } : {}), sourceHash }));
   }
   return { publication, config, theme, sourceHash, ...(edition ? { edition } : {}) };

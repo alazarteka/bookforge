@@ -260,6 +260,40 @@ test("paged web rebuild refuses to no-op when a chapter page is missing", async 
   }
 });
 
+test("rebuild refuses to no-op when the release seal is missing", async () => {
+  const root = await tempProject(true);
+  try {
+    await buildProject(root, ["web"]);
+    const first = await readFile(path.join(root, "dist/build-manifest.json"), "utf8");
+    await rm(path.join(root, "dist/release-seal.json"));
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await buildProject(root, ["web"]);
+    const rebuilt = JSON.parse(await readFile(path.join(root, "dist/build-manifest.json"), "utf8")) as { timestamp: string };
+    assert.notEqual(rebuilt.timestamp, JSON.parse(first).timestamp);
+    await access(path.join(root, "dist/release-seal.json"));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("rebuild refuses to no-op when the manifest Bookforge version differs", async () => {
+  const root = await tempProject(true);
+  try {
+    await buildProject(root, ["web"]);
+    const first = await readFile(path.join(root, "dist/build-manifest.json"), "utf8");
+    const manifest = JSON.parse(first) as { bookforgeVersion: string; timestamp: string };
+    manifest.bookforgeVersion = "0.0.0";
+    await writeFile(path.join(root, "dist/build-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    await buildProject(root, ["web"]);
+    const rebuilt = JSON.parse(await readFile(path.join(root, "dist/build-manifest.json"), "utf8")) as { bookforgeVersion: string; timestamp: string };
+    assert.notEqual(rebuilt.timestamp, manifest.timestamp);
+    assert.notEqual(rebuilt.bookforgeVersion, "0.0.0");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("drift reports a missing generated colophon page", async () => {
   const root = await tempProject(true);
   try {

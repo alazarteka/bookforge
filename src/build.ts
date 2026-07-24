@@ -172,10 +172,12 @@ async function existingBuildIsCurrent(
   try {
     const raw = await readFile(path.join(destination, "build-manifest.json"), "utf8");
     const manifest = JSON.parse(raw) as BuildManifest;
+    if (manifest.bookforgeVersion !== BOOKFORGE_VERSION) return false;
     if (manifest.sourceHash !== built.sourceHash) return false;
     if (manifest.publicationId !== built.publication.id) return false;
     if (manifest.theme.hash !== built.theme.hash) return false;
     if (manifest.formats.length !== formats.length || formats.some((format) => !manifest.formats.includes(format))) return false;
+    if (!(await stat(path.join(destination, "release-seal.json")).catch(() => undefined))?.isFile()) return false;
     if (formats.includes("pdf")) {
       if (!options.printProfile || !manifest.printProfile) return false;
       if (
