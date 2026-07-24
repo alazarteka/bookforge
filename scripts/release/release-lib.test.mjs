@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { assertTargetMatchesHost, isSafeArchivePath, normalizeVersion, readPackage, releaseAssetName, releaseRequirements, releaseTargets, targetForHost } from "./release-lib.mjs";
+import { assertTargetMatchesHost, isSafeArchivePath, normalizeVersion, readPackage, releaseAssetName, releaseRequirements, releaseTargets, sha256File, targetForHost } from "./release-lib.mjs";
 
 const packageVersion = (await readPackage()).version;
 
@@ -60,8 +60,9 @@ test("aggregates all target manifests and checksums without network access", asy
   try {
     for (const target of Object.keys(releaseTargets)) {
       const asset = releaseAssetName(packageVersion, target);
+      await writeFile(path.join(directory, asset), `fixture archive for ${target}\n`);
       await writeFile(path.join(directory, `${asset}.manifest.json`), `${JSON.stringify({
-        schema: 1, version: packageVersion, target, asset, sha256: "a".repeat(64), requirements: {},
+        schema: 1, version: packageVersion, target, asset, sha256: await sha256File(path.join(directory, asset)), requirements: {},
       })}\n`);
     }
     await writeFile(path.join(directory, "bookforge-install.sh"), "#!/usr/bin/env bash\n");
@@ -70,6 +71,43 @@ test("aggregates all target manifests and checksums without network access", asy
     assert.deepEqual(Object.keys(aggregate.targets).sort(), Object.keys(releaseTargets).sort());
     const checksums = await readFile(path.join(directory, "SHA256SUMS"), "utf8");
     assert.match(checksums, /bookforge-install\.sh/);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("rejects aggregate manifests that reference a missing archive", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "bookforge-release-manifest-"));
+  try {
+    for (const target of Object.keys(releaseTargets)) {
+      const asset = releaseAssetName(packageVersion, target);
+      await writeFile(path.join(directory, `${asset}.manifest.json`), `${JSON.stringify({
+        schema: 1, version: packageVersion, target, asset, sha256: "a".repeat(64), requirements: {},
+      })}\n`);
+    }
+    await assert.rejects(
+      command(process.execPath, [path.resolve(import.meta.dirname, "create-release-manifest.mjs"), "--input", directory, "--output", directory]),
+      /Missing release archive/,
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("rejects aggregate manifests whose archive checksum does not match", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "bookforge-release-manifest-"));
+  try {
+    for (const target of Object.keys(releaseTargets)) {
+      const asset = releaseAssetName(packageVersion, target);
+      await writeFile(path.join(directory, asset), `fixture archive for ${target}\n`);
+      await writeFile(path.join(directory, `${asset}.manifest.json`), `${JSON.stringify({
+        schema: 1, version: packageVersion, target, asset, sha256: "a".repeat(64), requirements: {},
+      })}\n`);
+    }
+    await assert.rejects(
+      command(process.execPath, [path.resolve(import.meta.dirname, "create-release-manifest.mjs"), "--input", directory, "--output", directory]),
+      /Checksum mismatch for release archive/,
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
