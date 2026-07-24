@@ -4,6 +4,7 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { atomicReplaceDirectory, containedPath, escapeHtml, mapPool, slugify } from "./util.js";
+import { renameIfExists } from "./build.js";
 
 test("escapes markup", () => assert.equal(escapeHtml(`<script a="b">&`), "&lt;script a=&quot;b&quot;&gt;&amp;"));
 test("creates stable Unicode-aware slugs", () => assert.equal(slugify("Professor’s Wár"), "professor-s-war"));
@@ -53,6 +54,30 @@ test("atomicReplaceDirectory restores previous when stage rename fails", async (
     await writeFile(path.join(target, "old.txt"), "old\n");
     await assert.rejects(atomicReplaceDirectory(stage, target, previous), (error: NodeJS.ErrnoException) => error.code === "ENOENT");
     assert.equal(await readFile(path.join(target, "old.txt"), "utf8"), "old\n");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("renameIfExists ignores only a missing source", async () => {
+  const root = await mkdtemp(path.join(tmpdir(), "bookforge-rename-if-exists-"));
+  try {
+    await assert.doesNotReject(renameIfExists(path.join(root, "missing"), path.join(root, "target")));
+    const source = path.join(root, "source");
+    const target = path.join(root, "target");
+    await mkdir(source);
+    await mkdir(target);
+    await writeFile(path.join(target, "keep.txt"), "keep\n");
+    await assert.rejects(renameIfExists(source, target));
+    assert.equal(await readFile(path.join(target, "keep.txt"), "utf8"), "keep\n");
+
+    const secondSource = path.join(root, "second-source");
+    await mkdir(secondSource);
+    await assert.rejects(
+      renameIfExists(secondSource, path.join(root, "missing-parent", "target")),
+      (error: NodeJS.ErrnoException) => error.code === "ENOENT",
+    );
+    await access(secondSource);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
