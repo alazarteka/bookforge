@@ -39,7 +39,7 @@ test("check requires published book and theme assets", async () => {
     await rm(path.join(root, "dist", "web", "assets", publication.assets[0]!.outputName));
     await assert.rejects(checkProject(root), /Web asset .* is missing/);
 
-    await buildProject(root);
+    await buildProject(root, undefined, undefined, { force: true });
     await rm(path.join(root, "dist", "web", "theme-assets", theme.assets[0]!.outputName));
     await assert.rejects(checkProject(root), /Web theme asset .* is missing/);
   } finally {
