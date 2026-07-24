@@ -31,6 +31,22 @@ test("check requires a complete configured web build", async () => {
   }
 });
 
+test("check requires published book and theme assets", async () => {
+  const root = await webProject();
+  try {
+    await buildProject(root);
+    const { publication, theme } = await createPublication(root);
+    await rm(path.join(root, "dist", "web", "assets", publication.assets[0]!.outputName));
+    await assert.rejects(checkProject(root), /Web asset .* is missing/);
+
+    await buildProject(root, undefined, undefined, { force: true });
+    await rm(path.join(root, "dist", "web", "theme-assets", theme.assets[0]!.outputName));
+    await assert.rejects(checkProject(root), /Web theme asset .* is missing/);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("check rejects stale, malformed, and format-mismatched manifests", async () => {
   const root = await webProject();
   try {
