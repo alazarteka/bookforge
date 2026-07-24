@@ -1,7 +1,7 @@
 import { cp, mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loadConfig } from "./config.js";
-import { loadReleaseSeal } from "./seal.js";
+import { assertStoredSealMatchesArtifacts } from "./seal.js";
 import { sourceEpochDate } from "./util.js";
 
 export async function archiveProject(project: string, label?: string): Promise<string> {
@@ -11,9 +11,9 @@ export async function archiveProject(project: string, label?: string): Promise<s
   if (!(await stat(dist).catch(() => undefined))?.isDirectory()) {
     throw new Error("No dist/ build found. Run `bookforge build` before `bookforge archive`.");
   }
-  const seal = await loadReleaseSeal(path.join(dist, "release-seal.json")).catch(() => undefined);
+  const seal = await assertStoredSealMatchesArtifacts(dist);
   const stamp = sourceEpochDate().toISOString().slice(0, 10);
-  const version = label ?? seal?.sourceHash.slice(0, 8) ?? "build";
+  const version = label ?? seal.sourceHash.slice(0, 8);
   const folderName = `${config.id}-${version}-${stamp}`.replace(/[^\w.-]+/g, "-");
   const archives = path.join(root, "archives");
   const destination = path.join(archives, folderName);
@@ -39,7 +39,7 @@ export async function archiveProject(project: string, label?: string): Promise<s
       if (error.code === "ENOENT") return "# Archives\n\n";
       throw error;
     });
-    const line = `- \`${folderName}\` — ${config.title} (${stamp}${seal ? `, seal ${seal.sourceHash.slice(0, 12)}` : ""})\n`;
+    const line = `- \`${folderName}\` — ${config.title} (${stamp}, seal ${seal.sourceHash.slice(0, 12)})\n`;
     const nextIndex = previous.endsWith("\n") ? `${previous}${line}` : `${previous}\n${line}`;
     const stagedIndex = path.join(indexStage, "INDEX.md");
     await writeFile(stagedIndex, nextIndex);
