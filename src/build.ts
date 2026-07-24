@@ -205,11 +205,19 @@ async function existingBuildIsCurrent(
   }
 }
 
-async function renameIfExists(from: string, to: string): Promise<void> {
+export async function renameIfExists(from: string, to: string): Promise<void> {
   try {
     await rename(from, to);
-  } catch {
-    // absent source is fine
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    const sourceExists = await stat(from).then(
+      () => true,
+      (statError: NodeJS.ErrnoException) => {
+        if (statError.code === "ENOENT") return false;
+        throw statError;
+      },
+    );
+    if (sourceExists) throw error;
   }
 }
 

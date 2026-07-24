@@ -19,7 +19,7 @@
     "clean": "node scripts/clean.mjs",
     "fixtures:prepare": "node scripts/prepare-fixtures.mjs",
     "profiles:verify": "node scripts/verify-profiles.mjs",
-    "test": "pnpm run fixtures:prepare && pnpm run build && node --test lib/*.test.js scripts/release/*.test.mjs",
+    "test": "pnpm run fixtures:prepare && pnpm run clean && pnpm run build && node --test lib/*.test.js scripts/release/*.test.mjs",
     "check": "pnpm run build && pnpm run test && pnpm run security:audit",
     "security:audit": "node scripts/release/audit.mjs",
     "security:verify": "pnpm install --frozen-lockfile --ignore-scripts && pnpm run security:audit",
